@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<h1>Analytics Dashboard</h1>
+<p>Generated: {{ report.generated_date }}</p>
+
+<!-- Overview Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="value">{{ report.frequency.total_meals }}</div>
+        <div class="label">Total Meals</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ report.frequency.total_uses }}</div>
+        <div class="label">Total Uses</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ "%.1f"|format(report.frequency.average_uses_per_meal) }}</div>
+        <div class="label">Avg Uses/Meal</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ report.frequency.never_used|length }}</div>
+        <div class="label">Never Used</div>
+    </div>
+</div>
+
+<div class="grid">
+    <!-- Meal Frequency -->
+    <article>
+        <header><h3>Most Used Meals</h3></header>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Meal</th>
+                    <th>Uses</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for name, count in report.frequency.most_used[:10] %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ name }}</td>
+                    <td>
+                        <progress value="{{ count }}" max="{{ report.frequency.most_used[0][1] }}"></progress>
+                        {{ count }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </article>
+
+    <!-- Cuisine Distribution -->
+    <article>
+        <header><h3>Cuisine Distribution</h3></header>
+        <table>
+            <thead>
+                <tr>
+                    <th>Cuisine</th>
+                    <th>Count</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cuisine, count, pct in report.cuisine.top_cuisines[:10] %}
+                <tr>
+                    <td>{{ cuisine.title() }}</td>
+                    <td>{{ count }}</td>
+                    <td>
+                        <progress value="{{ pct }}" max="100"></progress>
+                        {{ "%.1f"|format(pct) }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </article>
+</div>
+
+<!-- Eating Patterns -->
+<article>
+    <header><h3>Weekly Averages</h3></header>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="value">{{ "%.1f"|format(report.patterns.meals_per_week_avg) }}</div>
+            <div class="label">Meals/Week</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ "%.1f"|format(report.patterns.soups_per_week_avg) }}</div>
+            <div class="label">Soups/Week</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ "%.1f"|format(report.patterns.mains_per_week_avg) }}</div>
+            <div class="label">Mains/Week</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ "%.1f"|format(report.patterns.meat_per_week_avg) }}</div>
+            <div class="label">Meat/Week</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ "%.1f"|format(report.patterns.vegetarian_per_week_avg) }}</div>
+            <div class="label">Vegetarian/Week</div>
+        </div>
+    </div>
+</article>
+
+<!-- Weekly Trends -->
+{% if report.patterns.weekly_trends %}
+<article>
+    <header><h3>Recent Weekly Trends</h3></header>
+    <table>
+        <thead>
+            <tr>
+                <th>Week</th>
+                <th>Total</th>
+                <th>Soups</th>
+                <th>Mains</th>
+                <th>Meat</th>
+                <th>Vegetarian</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for trend in report.patterns.weekly_trends[-12:] %}
+            <tr>
+                <td>W{{ trend.week }}/{{ trend.year }}</td>
+                <td>{{ trend.total }}</td>
+                <td>{{ trend.soups }}</td>
+                <td>{{ trend.mains }}</td>
+                <td>{{ trend.meat }}</td>
+                <td>{{ trend.vegetarian }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endif %}
+
+<!-- Leftover Stats -->
+<article>
+    <header><h3>Leftover Statistics</h3></header>
+    <p>
+        <strong>{{ report.leftovers.total_leftovers }}</strong> leftover entries out of
+        <strong>{{ report.leftovers.total_meals }}</strong> total
+        (<strong>{{ "%.1f"|format(report.leftovers.leftover_percentage) }}%</strong>)
+    </p>
+    {% if report.leftovers.most_common_leftovers %}
+    <details>
+        <summary>Most common leftovers</summary>
+        <ul>
+            {% for name, count in report.leftovers.most_common_leftovers[:10] %}
+            <li>{{ name }}: {{ count }} times</li>
+            {% endfor %}
+        </ul>
+    </details>
+    {% endif %}
+</article>
+
+<!-- Never Used Meals -->
+{% if report.frequency.never_used %}
+<article>
+    <header><h3>Never Used Meals ({{ report.frequency.never_used|length }})</h3></header>
+    <details>
+        <summary>Show never-used meals</summary>
+        <ul>
+            {% for name in report.frequency.never_used %}
+            <li>{{ name }}</li>
+            {% endfor %}
+        </ul>
+    </details>
+</article>
+{% endif %}
+{% endblock %}

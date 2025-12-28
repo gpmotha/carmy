@@ -1,0 +1,42 @@
+<table>
+    <tr>
+        <th>Type</th>
+        <td>{{ meal.meal_type.replace('_', ' ').title() }}</td>
+    </tr>
+    <tr>
+        <th>Cuisine</th>
+        <td>{{ meal.cuisine.title() if meal.cuisine else '-' }}</td>
+    </tr>
+    <tr>
+        <th>Has Meat</th>
+        <td>{% if meal.has_meat %}Yes{% else %}No{% endif %}</td>
+    </tr>
+    <tr>
+        <th>Vegetarian</th>
+        <td>{% if meal.is_vegetarian %}Yes{% else %}No{% endif %}</td>
+    </tr>
+    {% if meal.calories %}
+    <tr>
+        <th>Calories</th>
+        <td>{{ meal.calories }} kcal</td>
+    </tr>
+    {% endif %}
+    {% if meal.prep_time_minutes %}
+    <tr>
+        <th>Prep Time</th>
+        <td>{{ meal.prep_time_minutes }} min</td>
+    </tr>
+    {% endif %}
+    {% if meal.seasonality %}
+    <tr>
+        <th>Seasonality</th>
+        <td>{{ meal.seasonality.replace('_', ' ').title() }}</td>
+    </tr>
+    {% endif %}
+    {% if meal.flavor_base %}
+    <tr>
+        <th>Flavor Base</th>
+        <td>{{ meal.flavor_base }}</td>
+    </tr>
+    {% endif %}
+</table>

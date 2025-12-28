@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.env.local
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/
+
+# Documentation (contains personal/family meal planning details)
+docs/
+
+# Data files (personal meal data)
+data/
+
+# Node modules (React frontend)
+node_modules/
+
+# Sensitive/personal files
+*.json.bak
+*.csv.bak
+carmy.db
+*.log
+
+# Credentials and secrets
+credentials.json
+secrets.json
+*.pem
+*.key
+
+# OS files
+.DS_Store
+Thumbs.db

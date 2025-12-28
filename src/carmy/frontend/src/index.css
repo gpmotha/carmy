@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Carmy Style Guide Base Styles */
+@layer base {
+  body {
+    @apply antialiased;
+    background-color: #F5F5F2; /* Kitchen White */
+    color: #1C2A39; /* Carmy Blue */
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+
+  /* Headers use Canela (Cormorant Garamond alternative) */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 500;
+    color: #1C2A39; /* Carmy Blue */
+  }
+
+  /* Canela-style serif font class */
+  .font-canela {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+}
+
+/* Custom component classes - Carmy Style Guide */
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 flex items-center gap-2 transition-all;
+    background-color: #1C2A39; /* Carmy Blue */
+    color: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+
+  .btn-primary:hover {
+    background-color: #141D28; /* Carmy Blue Dark */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 flex items-center gap-2 transition-all;
+    background-color: #FFFFFF;
+    color: #1C2A39;
+    border: 1px solid #E5E5E0;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+
+  .btn-secondary:hover {
+    background-color: #FAFAF8;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+
+  .card {
+    background-color: #FFFFFF;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: all 0.2s ease;
+  }
+
+  .card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+
+  /* Success state - Herb Green */
+  .success {
+    color: #4E6E58;
+  }
+
+  .bg-success {
+    background-color: #E8F0EA;
+  }
+
+  /* Danger state - Tomato Red */
+  .danger {
+    color: #B23A48;
+  }
+
+  .bg-danger {
+    background-color: #F8E8EA;
+  }
+}
+
+/* Smooth transitions */
+* {
+  transition-timing-function: ease;
+}

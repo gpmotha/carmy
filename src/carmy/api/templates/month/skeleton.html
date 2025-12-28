@@ -1,0 +1,742 @@
+{% extends "base.html" %}
+
+{% block title %}{{ month_name }} {{ year }} - Plan{% endblock %}
+
+{% block head %}
+<style>
+    /* Header */
+    .month-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .month-header h1 {
+        margin: 0;
+    }
+
+    .month-header .subtitle {
+        color: var(--muted-color);
+        font-size: 0.875rem;
+    }
+
+    .month-nav {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .month-nav a, .month-nav button {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        background: var(--secondary);
+        color: var(--secondary-inverse);
+        border: none;
+        cursor: pointer;
+    }
+
+    .month-nav a:hover, .month-nav button:hover {
+        filter: brightness(0.9);
+    }
+
+    .month-nav a.primary, .month-nav button.primary {
+        background: var(--primary);
+        color: white;
+    }
+
+    /* Theme badge */
+    .theme-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(230, 126, 34, 0.15);
+        border-radius: 20px;
+        font-size: 0.875rem;
+    }
+
+    .theme-badge .icon {
+        font-size: 1.25rem;
+    }
+
+    /* Settings summary bar */
+    .settings-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--card-background-color);
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+    }
+
+    .settings-bar .setting-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .settings-bar .setting-label {
+        color: var(--muted-color);
+    }
+
+    .settings-bar .setting-value {
+        font-weight: 500;
+    }
+
+    /* Week cards grid */
+    .weeks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .week-card {
+        background: var(--card-background-color);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .week-card-header {
+        background: var(--primary);
+        color: white;
+        padding: 0.75rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .week-card-header h3 {
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .week-card-header .dates {
+        font-size: 0.75rem;
+        opacity: 0.9;
+    }
+
+    .week-card-body {
+        padding: 1rem;
+    }
+
+    /* Cooking events list */
+    .cooking-events {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .cooking-event {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: var(--background-color);
+        border-radius: 6px;
+        border-left: 3px solid var(--muted-border-color);
+        transition: all 0.2s;
+    }
+
+    .cooking-event:hover {
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .cooking-event.main { border-left-color: #e67e22; }
+    .cooking-event.soup { border-left-color: #3498db; }
+    .cooking-event.fun { border-left-color: #9b59b6; }
+    .cooking-event.special { border-left-color: #ec4899; background: rgba(236, 72, 153, 0.05); }
+
+    /* Special date badge */
+    .special-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.125rem 0.5rem;
+        background: linear-gradient(135deg, #ec4899, #f472b6);
+        color: white;
+        border-radius: 12px;
+        font-size: 0.625rem;
+        font-weight: bold;
+        margin-left: 0.5rem;
+    }
+
+    .special-badge .icon {
+        font-size: 0.75rem;
+    }
+
+    .event-day {
+        min-width: 40px;
+        text-align: center;
+    }
+
+    .event-day .day-name {
+        font-weight: bold;
+        font-size: 0.875rem;
+    }
+
+    .event-day .day-type {
+        font-size: 0.625rem;
+        color: var(--muted-color);
+        text-transform: uppercase;
+    }
+
+    .event-meal {
+        flex: 1;
+    }
+
+    .event-meal .meal-name {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .event-meal .meal-meta {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: var(--muted-color);
+    }
+
+    .event-actions {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .event-actions button {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border: 1px solid var(--muted-border-color);
+        background: transparent;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .event-actions button:hover {
+        background: var(--muted-border-color);
+    }
+
+    /* Empty state */
+    .empty-week {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--muted-color);
+    }
+
+    /* Special dates sidebar */
+    .special-dates {
+        background: var(--card-background-color);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .special-dates h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+    }
+
+    .special-date-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+    }
+
+    .special-date-item:hover {
+        background: var(--background-color);
+    }
+
+    .special-date-item .date-icon {
+        margin-right: 0.5rem;
+    }
+
+    /* Tags */
+    .tag {
+        font-size: 0.625rem;
+        padding: 0.125rem 0.375rem;
+        border-radius: 3px;
+        background: var(--muted-border-color);
+    }
+
+    .tag.meat { background: #fee2e2; color: #b91c1c; }
+    .tag.veggie { background: #dcfce7; color: #166534; }
+    .tag.soup { background: #dbeafe; color: #1e40af; }
+
+    [data-theme="dark"] .tag.meat { background: #7f1d1d; color: #fecaca; }
+    [data-theme="dark"] .tag.veggie { background: #14532d; color: #bbf7d0; }
+    [data-theme="dark"] .tag.soup { background: #1e3a8a; color: #bfdbfe; }
+
+    /* Warnings */
+    .warnings-panel {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    [data-theme="dark"] .warnings-panel {
+        background: #78350f;
+        border-color: #f59e0b;
+    }
+
+    .warnings-panel h4 {
+        margin: 0 0 0.5rem 0;
+        color: #92400e;
+    }
+
+    [data-theme="dark"] .warnings-panel h4 {
+        color: #fde68a;
+    }
+
+    .warnings-panel ul {
+        margin: 0;
+        padding-left: 1.5rem;
+    }
+
+    /* Action bar */
+    .action-bar {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: var(--card-background-color);
+        border-radius: 8px;
+        margin-top: 2rem;
+    }
+
+    /* Meal swap modal */
+    .modal {
+        padding: 0;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        max-width: 500px;
+        width: 90%;
+    }
+
+    .modal::backdrop {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+        background: var(--primary);
+        color: white;
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+    }
+
+    .modal-header .close-btn {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    .meal-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border: 1px solid var(--muted-border-color);
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .meal-option:hover {
+        border-color: var(--primary);
+        background: rgba(230, 126, 34, 0.05);
+    }
+
+    .meal-option.selected {
+        border-color: var(--primary);
+        background: rgba(230, 126, 34, 0.1);
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--muted-border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .weeks-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .month-header {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .month-nav {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .settings-bar {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="month-header">
+    <div>
+        <h1>{{ month_name }} {{ year }}</h1>
+        <p class="subtitle">
+            {% if theme_info %}
+            <span class="theme-badge">
+                <span class="icon">{{ theme_info.icon }}</span>
+                {{ theme_info.name|title }} theme
+            </span>
+            {% else %}
+            No theme selected
+            {% endif %}
+        </p>
+    </div>
+    <div class="month-nav">
+        <a href="/month/{{ prev_year }}/{{ prev_month }}">&larr; {{ prev_month }}</a>
+        <a href="/month/setup/{{ year }}/{{ month }}">Edit Settings</a>
+        <a href="/month/{{ next_year }}/{{ next_month }}">{{ next_month }} &rarr;</a>
+    </div>
+</div>
+
+<!-- Settings summary -->
+<div class="settings-bar">
+    <div class="setting-item">
+        <span class="setting-label">Meat:</span>
+        <span class="setting-value">{{ (settings.meat_level * 100) | int }}%</span>
+    </div>
+    <div class="setting-item">
+        <span class="setting-label">Fish:</span>
+        <span class="setting-value">{{ (settings.fish_level * 100) | int }}%</span>
+    </div>
+    <div class="setting-item">
+        <span class="setting-label">Soups/week:</span>
+        <span class="setting-value">{{ settings.soups_per_week }}</span>
+    </div>
+    <div class="setting-item">
+        <span class="setting-label">Mains/week:</span>
+        <span class="setting-value">{{ settings.main_courses_per_week }}</span>
+    </div>
+    {% if settings.lent_mode %}
+    <div class="setting-item">
+        <span class="tag">Lent Mode</span>
+    </div>
+    {% endif %}
+    {% if settings.batch_cooking %}
+    <div class="setting-item">
+        <span class="tag">Batch Cooking</span>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Special dates -->
+{% if special_dates %}
+<div class="special-dates">
+    <h3>Special Dates This Month</h3>
+    {% for sd in special_dates %}
+    <div class="special-date-item">
+        <span>
+            <span class="date-icon">
+                {% if sd.event_type == 'birthday' %}&#127874;{% elif sd.event_type == 'holiday' %}&#127878;{% elif sd.event_type == 'guests' %}&#128101;{% else %}&#128197;{% endif %}
+            </span>
+            <strong>{{ sd.date.strftime('%b %d') }}</strong> - {{ sd.name }}
+        </span>
+        <span class="tag">{{ sd.event_type }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Warnings -->
+{% if plan.warnings %}
+<div class="warnings-panel">
+    <h4>Warnings</h4>
+    <ul>
+        {% for warning in plan.warnings %}
+        <li>{{ warning }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Week cards -->
+<div class="weeks-grid">
+    {% for week in weeks %}
+    <div class="week-card" data-week-id="{{ week.id }}">
+        <div class="week-card-header">
+            <h3>Week {{ week.week_number }}</h3>
+            <span class="dates">{{ week.start_date.strftime('%b %d') }} - {{ week.end_date.strftime('%b %d') }}</span>
+        </div>
+        <div class="week-card-body">
+            {% if week.cooking_events %}
+            <div class="cooking-events">
+                {% for event in week.cooking_events %}
+                <div class="cooking-event {{ event.event_type }}{% if event.special_date %} special{% endif %}" data-event-id="{{ event.id }}">
+                    <div class="event-day">
+                        <div class="day-name">{{ event.day_name }}</div>
+                        <div class="day-type">{{ event.event_type }}</div>
+                    </div>
+                    <div class="event-meal">
+                        {% if event.meal %}
+                        <div class="meal-name">
+                            {{ event.meal.name }}
+                            {% if event.special_date %}
+                            <span class="special-badge">
+                                <span class="icon">{{ event.special_date.icon | safe }}</span>
+                                {{ event.special_date.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="meal-meta">
+                            <span class="tag {% if event.meal.has_meat %}meat{% elif event.meal.is_vegetarian %}veggie{% endif %}">
+                                {{ event.meal.meal_type }}
+                            </span>
+                            {% if event.portions > 1 %}
+                            <span>{{ event.portions }} portions</span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="meal-name" style="color: var(--muted-color);">
+                            No meal assigned
+                            {% if event.special_date %}
+                            <span class="special-badge">
+                                <span class="icon">{{ event.special_date.icon | safe }}</span>
+                                {{ event.special_date.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="event-actions">
+                        <button type="button" onclick="openSwapModal({{ event.id }}, '{{ event.meal.name if event.meal else '' }}')" title="Swap meal">
+                            Swap
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-week">
+                <p>No cooking events scheduled</p>
+                <button type="button" class="btn-sm" onclick="addCookingEvent({{ week.id }})">Add Event</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not weeks %}
+<div class="alert info" style="text-align: center;">
+    <p>No weeks have been generated yet.</p>
+    <a href="/month/setup/{{ year }}/{{ month }}" class="primary">Go to Setup</a>
+</div>
+{% endif %}
+
+<!-- Action bar -->
+<div class="action-bar">
+    <button type="button" class="secondary" onclick="regenerateMonth()">
+        Regenerate All
+    </button>
+    <a href="/board/month/{{ year }}/{{ month }}" class="primary">
+        Go to Full Board View
+    </a>
+</div>
+
+<!-- Meal swap modal -->
+<dialog id="swap-modal" class="modal">
+    <div class="modal-header">
+        <h3>Swap Meal</h3>
+        <button type="button" class="close-btn" onclick="closeSwapModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+        <p id="swap-current-meal">Current: <strong></strong></p>
+        <input type="search" id="meal-search" placeholder="Search meals..." oninput="filterMealOptions(this.value)">
+        <div id="meal-options" style="margin-top: 1rem;">
+            <!-- Populated via HTMX or JS -->
+            <p style="color: var(--muted-color);">Loading alternatives...</p>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="secondary" onclick="closeSwapModal()">Cancel</button>
+        <button type="button" class="primary" id="confirm-swap-btn" disabled onclick="confirmSwap()">Swap</button>
+    </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentEventId = null;
+let selectedMealId = null;
+let allMeals = [];
+
+// Load meals for swapping
+async function loadMeals() {
+    try {
+        const response = await fetch('/api/meals?limit=200');
+        const data = await response.json();
+        allMeals = data.meals || data;
+    } catch (error) {
+        console.error('Failed to load meals:', error);
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', loadMeals);
+
+function openSwapModal(eventId, currentMealName) {
+    currentEventId = eventId;
+    selectedMealId = null;
+
+    document.getElementById('swap-current-meal').innerHTML = `Current: <strong>${currentMealName || 'None'}</strong>`;
+    document.getElementById('meal-search').value = '';
+    document.getElementById('confirm-swap-btn').disabled = true;
+
+    renderMealOptions(allMeals);
+    document.getElementById('swap-modal').showModal();
+}
+
+function closeSwapModal() {
+    document.getElementById('swap-modal').close();
+    currentEventId = null;
+    selectedMealId = null;
+}
+
+function renderMealOptions(meals) {
+    const container = document.getElementById('meal-options');
+    if (!meals.length) {
+        container.innerHTML = '<p style="color: var(--muted-color);">No meals found</p>';
+        return;
+    }
+
+    container.innerHTML = meals.slice(0, 20).map(meal => `
+        <div class="meal-option" data-meal-id="${meal.id}" onclick="selectMeal(${meal.id}, this)">
+            <div>
+                <strong>${meal.name}</strong>
+                ${meal.nev ? `<br><small style="color: var(--muted-color);">${meal.nev}</small>` : ''}
+            </div>
+            <span class="tag">${meal.meal_type || 'main'}</span>
+        </div>
+    `).join('');
+}
+
+function filterMealOptions(query) {
+    const filtered = allMeals.filter(meal =>
+        meal.name.toLowerCase().includes(query.toLowerCase()) ||
+        (meal.nev && meal.nev.toLowerCase().includes(query.toLowerCase()))
+    );
+    renderMealOptions(filtered);
+}
+
+function selectMeal(mealId, element) {
+    selectedMealId = mealId;
+
+    // Update UI
+    document.querySelectorAll('.meal-option').forEach(el => el.classList.remove('selected'));
+    element.classList.add('selected');
+    document.getElementById('confirm-swap-btn').disabled = false;
+}
+
+async function confirmSwap() {
+    if (!currentEventId || !selectedMealId) return;
+
+    try {
+        const response = await fetch(`/api/weeks/events/${currentEventId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ meal_id: selectedMealId })
+        });
+
+        if (response.ok) {
+            showToast('Meal swapped successfully!', 'success');
+            closeSwapModal();
+            // Reload the page to show updated data
+            location.reload();
+        } else {
+            const data = await response.json();
+            showToast(data.detail || 'Failed to swap meal', 'error');
+        }
+    } catch (error) {
+        console.error('Error swapping meal:', error);
+        showToast('Failed to swap meal', 'error');
+    }
+}
+
+async function regenerateMonth() {
+    if (!confirm('This will regenerate all cooking events for this month. Are you sure?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/months/{{ year }}/{{ month }}/generate', {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            showToast('Month regenerated successfully!', 'success');
+            location.reload();
+        } else {
+            const data = await response.json();
+            showToast(data.detail || 'Failed to regenerate month', 'error');
+        }
+    } catch (error) {
+        console.error('Error regenerating month:', error);
+        showToast('Failed to regenerate month', 'error');
+    }
+}
+
+function addCookingEvent(weekId) {
+    // TODO: Implement add cooking event
+    showToast('Add cooking event - coming soon!', 'info');
+}
+
+// Close modal on backdrop click
+document.getElementById('swap-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeSwapModal();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeSwapModal();
+    }
+});
+</script>
+{% endblock %}

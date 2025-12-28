@@ -1,0 +1,54 @@
+<header>
+    <h3>Edit Details</h3>
+</header>
+<form hx-put="/htmx/meals/{{ meal.id }}"
+      hx-target="#meal-details"
+      hx-swap="innerHTML">
+    <label for="name">Name (English)</label>
+    <input type="text" id="name" name="name" value="{{ meal.name }}" required>
+
+    <label for="nev">Name (Hungarian)</label>
+    <input type="text" id="nev" name="nev" value="{{ meal.nev }}" required>
+
+    <label for="meal_type">Type</label>
+    <select id="meal_type" name="meal_type" required>
+        {% for t in meal_types %}
+        <option value="{{ t }}" {% if meal.meal_type == t %}selected{% endif %}>{{ t.replace('_', ' ').title() }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="cuisine">Cuisine</label>
+    <select id="cuisine" name="cuisine">
+        <option value="">None</option>
+        {% for c in cuisines %}
+        <option value="{{ c }}" {% if meal.cuisine == c %}selected{% endif %}>{{ c.title() }}</option>
+        {% endfor %}
+    </select>
+
+    <fieldset>
+        <label>
+            <input type="checkbox" name="has_meat" {% if meal.has_meat %}checked{% endif %}>
+            Has Meat
+        </label>
+        <label>
+            <input type="checkbox" name="is_vegetarian" {% if meal.is_vegetarian %}checked{% endif %}>
+            Vegetarian
+        </label>
+    </fieldset>
+
+    <label for="calories">Calories (optional)</label>
+    <input type="number" id="calories" name="calories" value="{{ meal.calories or '' }}" min="0">
+
+    <label for="prep_time_minutes">Prep Time in minutes (optional)</label>
+    <input type="number" id="prep_time_minutes" name="prep_time_minutes" value="{{ meal.prep_time_minutes or '' }}" min="0">
+
+    <div class="btn-group">
+        <button type="submit">Save Changes</button>
+        <button type="button" class="outline"
+                hx-get="/htmx/meals/{{ meal.id }}/view"
+                hx-target="#meal-details"
+                hx-swap="innerHTML">
+            Cancel
+        </button>
+    </div>
+</form>

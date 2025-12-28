@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Week {{ plan.week_number }}, {{ plan.year }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ul>
+        <li><a href="/plans">Plans</a></li>
+        <li>Week {{ plan.week_number }}, {{ plan.year }}</li>
+    </ul>
+</nav>
+
+<!-- Week Navigation -->
+<div class="grid">
+    <div>
+        {% if prev_week %}
+        <a href="/plans/{{ prev_week.year }}/{{ prev_week.week }}">&larr; Week {{ prev_week.week }}</a>
+        {% endif %}
+    </div>
+    <div style="text-align: center;">
+        <hgroup>
+            <h1>Week {{ plan.week_number }}, {{ plan.year }}</h1>
+            <p>Starting {{ plan.start_date }}</p>
+        </hgroup>
+    </div>
+    <div style="text-align: right;">
+        {% if next_week %}
+        <a href="/plans/{{ next_week.year }}/{{ next_week.week }}">Week {{ next_week.week }} &rarr;</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Validation Status -->
+{% if validation %}
+<article>
+    {% if validation.is_valid %}
+    <div class="alert success">All validation rules passed!</div>
+    {% else %}
+    <div class="alert warning">
+        <strong>Validation Issues:</strong>
+        <ul>
+            {% for v in validation.violations %}
+            <li>{{ v.message }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</article>
+{% endif %}
+
+<div class="grid">
+    <!-- Soups -->
+    <div class="plan-section" id="soups-section">
+        <h3>Soups ({{ soups|length }})</h3>
+        {% if soups %}
+        <div class="meal-grid">
+            {% for pm in soups %}
+            <article class="meal-card" id="plan-meal-{{ pm.id }}">
+                <h4><a href="/meals/{{ pm.meal.id }}">{{ pm.meal.name }}</a></h4>
+                <div class="subtitle">{{ pm.meal.nev }}</div>
+                <div class="tags">
+                    {% if pm.meal.cuisine %}
+                    <span class="tag">{{ pm.meal.cuisine }}</span>
+                    {% endif %}
+                    {% if pm.is_leftover %}
+                    <span class="tag">Leftover</span>
+                    {% endif %}
+                </div>
+                <div class="btn-group" style="margin-top: 0.5rem;">
+                    <button class="btn-sm outline"
+                            hx-post="/htmx/plans/{{ plan.id }}/meals/{{ pm.id }}/regenerate"
+                            hx-target="#plan-meal-{{ pm.id }}"
+                            hx-swap="outerHTML"
+                            hx-indicator="#spinner-{{ pm.id }}">
+                        Swap
+                        <span id="spinner-{{ pm.id }}" class="htmx-indicator"><span class="spinner"></span></span>
+                    </button>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p><em>No soups in this plan.</em></p>
+        {% endif %}
+    </div>
+
+    <!-- Main Courses -->
+    <div class="plan-section" id="mains-section">
+        <h3>Main Courses ({{ mains|length }})</h3>
+        {% if mains %}
+        <div class="meal-grid">
+            {% for pm in mains %}
+            <article class="meal-card" id="plan-meal-{{ pm.id }}">
+                <h4><a href="/meals/{{ pm.meal.id }}">{{ pm.meal.name }}</a></h4>
+                <div class="subtitle">{{ pm.meal.nev }}</div>
+                <div class="tags">
+                    {% if pm.meal.cuisine %}
+                    <span class="tag">{{ pm.meal.cuisine }}</span>
+                    {% endif %}
+                    {% if pm.meal.has_meat %}
+                    <span class="tag meat">Meat</span>
+                    {% endif %}
+                    {% if pm.is_leftover %}
+                    <span class="tag">Leftover</span>
+                    {% endif %}
+                </div>
+                <div class="btn-group" style="margin-top: 0.5rem;">
+                    <button class="btn-sm outline"
+                            hx-post="/htmx/plans/{{ plan.id }}/meals/{{ pm.id }}/regenerate"
+                            hx-target="#plan-meal-{{ pm.id }}"
+                            hx-swap="outerHTML"
+                            hx-indicator="#spinner-{{ pm.id }}">
+                        Swap
+                        <span id="spinner-{{ pm.id }}" class="htmx-indicator"><span class="spinner"></span></span>
+                    </button>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p><em>No main courses in this plan.</em></p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Other meals -->
+{% if others %}
+<div class="plan-section">
+    <h3>Other ({{ others|length }})</h3>
+    <div class="meal-grid">
+        {% for pm in others %}
+        <article class="meal-card" id="plan-meal-{{ pm.id }}">
+            <h4><a href="/meals/{{ pm.meal.id }}">{{ pm.meal.name }}</a></h4>
+            <div class="subtitle">{{ pm.meal.meal_type }}</div>
+            <div class="tags">
+                {% if pm.is_leftover %}
+                <span class="tag">Leftover</span>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Stats -->
+<article>
+    <header><h3>Plan Stats</h3></header>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="value">{{ plan.plan_meals|selectattr('meal')|list|length }}</div>
+            <div class="label">Total Meals</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ soups|length }}</div>
+            <div class="label">Soups</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ mains|length }}</div>
+            <div class="label">Main Courses</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ meat_count }}</div>
+            <div class="label">With Meat</div>
+        </div>
+    </div>
+</article>
+
+<!-- Export Options -->
+<article>
+    <header><h3>Export</h3></header>
+    <a href="/api/export/{{ plan.year }}/{{ plan.week_number }}/json" role="button" class="outline">JSON</a>
+    <a href="/api/export/{{ plan.year }}/{{ plan.week_number }}/csv" role="button" class="outline">CSV</a>
+    <a href="/api/export/{{ plan.year }}/{{ plan.week_number }}/markdown" role="button" class="outline">Markdown</a>
+</article>
+{% endblock %}

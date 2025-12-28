@@ -1,0 +1,46 @@
+<div class="meal-grid">
+    {% for meal in meals %}
+    <article class="meal-card" id="meal-{{ meal.id }}">
+        <h4>
+            <a href="/meals/{{ meal.id }}" class="meal-name-primary" data-en="{{ meal.name }}" data-hu="{{ meal.nev }}">{{ meal.name }}</a>
+        </h4>
+        <div class="subtitle meal-name-secondary">{{ meal.nev }}</div>
+        <div class="tags">
+            <span class="tag {% if meal.meal_type == 'soup' %}soup{% elif meal.meal_type in ['main_course', 'pasta', 'dinner'] %}main{% endif %}">
+                {{ meal.meal_type.replace('_', ' ') }}
+            </span>
+            {% if meal.cuisine %}
+            <span class="tag">{{ meal.cuisine }}</span>
+            {% endif %}
+            {% if meal.has_meat %}
+            <span class="tag meat">Meat</span>
+            {% endif %}
+            {% if meal.is_vegetarian %}
+            <span class="tag vegetarian">Vegetarian</span>
+            {% endif %}
+        </div>
+    </article>
+    {% else %}
+    <p>No meals found matching your criteria.</p>
+    {% endfor %}
+</div>
+
+{% if total_meals > 50 %}
+<nav>
+    <ul>
+        {% if page > 1 %}
+        <li><a href="?page={{ page - 1 }}"
+               hx-get="/htmx/meals/search?page={{ page - 1 }}"
+               hx-target="#meal-grid">&laquo; Previous</a></li>
+        {% endif %}
+        <li>Page {{ page }} of {{ total_pages }}</li>
+        {% if page < total_pages %}
+        <li><a href="?page={{ page + 1 }}"
+               hx-get="/htmx/meals/search?page={{ page + 1 }}"
+               hx-target="#meal-grid">Next &raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<p><small>Showing {{ meals|length }} of {{ total_meals }} meals</small></p>

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Plan{% endblock %}
+
+{% block content %}
+<h1>Generate New Plan</h1>
+
+<div class="grid">
+    <div>
+        <!-- Generation Form -->
+        <article>
+            <header><h3>Options</h3></header>
+            <form method="post" action="/plans/generate">
+                <label for="week">Week Number</label>
+                <input type="number" id="week" name="week" value="{{ default_week }}" min="1" max="53" required>
+
+                <label for="year">Year</label>
+                <input type="number" id="year" name="year" value="{{ default_year }}" min="2020" max="2030" required>
+
+                <label for="randomness">
+                    Randomness
+                    <small>Higher = more variety, Lower = prefer favorites</small>
+                </label>
+                <input type="range" id="randomness" name="randomness" min="0" max="1" step="0.1" value="0.3">
+
+                <fieldset>
+                    <label>
+                        <input type="checkbox" name="save" value="true">
+                        Save plan immediately
+                    </label>
+                </fieldset>
+
+                <button type="submit">Generate Plan</button>
+            </form>
+        </article>
+    </div>
+
+    <div>
+        <!-- Info -->
+        <article>
+            <header><h3>Generation Rules</h3></header>
+            <ul>
+                <li>2 soups per week</li>
+                <li>4 main courses per week</li>
+                <li>Maximum 3 meat dishes</li>
+                <li>Avoids recently used meals</li>
+                <li>Prevents flavor conflicts</li>
+                <li>Prefers seasonal ingredients</li>
+            </ul>
+        </article>
+
+        <article>
+            <header><h3>Current Season</h3></header>
+            <p><strong>{{ season.title() }}</strong></p>
+            <p>Seasonal meals will be prioritized in generation.</p>
+        </article>
+    </div>
+</div>
+
+<!-- Preview Section (shown after generation) -->
+{% if preview %}
+<article>
+    <header>
+        <h3>Generated Plan Preview</h3>
+        <p>Week {{ preview.week_number }}, {{ preview.year }} - {{ preview.season.title() }}</p>
+    </header>
+
+    <div class="grid">
+        <div>
+            <h4>Soups</h4>
+            <ul>
+                {% for soup in preview.soups %}
+                <li>{{ soup.name }} {% if soup.cuisine %}({{ soup.cuisine }}){% endif %}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div>
+            <h4>Main Courses</h4>
+            <ul>
+                {% for main in preview.main_courses %}
+                <li>
+                    {{ main.name }}
+                    {% if main.cuisine %}({{ main.cuisine }}){% endif %}
+                    {% if main.has_meat %}<span class="tag meat">M</span>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    {% if preview.validation %}
+        {% if preview.validation.is_valid %}
+        <div class="alert success">Validation passed!</div>
+        {% else %}
+        <div class="alert warning">
+            <strong>Validation issues:</strong>
+            <ul>
+                {% for v in preview.validation.violations %}
+                <li>{{ v.message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    {% if preview.saved %}
+    <div class="alert success">
+        Plan saved! <a href="/plans/{{ preview.year }}/{{ preview.week_number }}">View Plan</a>
+    </div>
+    {% else %}
+    <form method="post" action="/plans/generate">
+        <input type="hidden" name="week" value="{{ preview.week_number }}">
+        <input type="hidden" name="year" value="{{ preview.year }}">
+        <input type="hidden" name="randomness" value="0.3">
+        <input type="hidden" name="save" value="true">
+        <button type="submit">Save This Plan</button>
+        <a href="/plans/generate" role="button" class="outline">Generate Different</a>
+    </form>
+    {% endif %}
+</article>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<h1>Welcome to Carmy</h1>
+<p>Your smart weekly meal planner that learns from history.</p>
+
+<!-- Stats Overview -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="value">{{ stats.total_meals }}</div>
+        <div class="label">Total Meals</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ stats.total_plans }}</div>
+        <div class="label">Weekly Plans</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ stats.soups }}</div>
+        <div class="label">Soups</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ stats.mains }}</div>
+        <div class="label">Main Courses</div>
+    </div>
+</div>
+
+<div class="grid">
+    <!-- Current Week Plan -->
+    <div class="card">
+        <h3>This Week (Week {{ current_week.week }}, {{ current_week.year }})</h3>
+        {% if current_plan %}
+            <p><strong>Soups:</strong>
+                {% for meal in current_plan.soups %}
+                    {{ meal.name }}{% if not loop.last %}, {% endif %}
+                {% else %}
+                    <em>None</em>
+                {% endfor %}
+            </p>
+            <p><strong>Mains:</strong>
+                {% for meal in current_plan.mains %}
+                    {{ meal.name }}{% if not loop.last %}, {% endif %}
+                {% else %}
+                    <em>None</em>
+                {% endfor %}
+            </p>
+            <a href="/plans/{{ current_week.year }}/{{ current_week.week }}" role="button">View Full Plan</a>
+        {% else %}
+            <p class="alert info">No plan for this week yet.</p>
+            <a href="/plans/generate" role="button">Generate Plan</a>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <h3>Quick Actions</h3>
+        <p>
+            <a href="/plans/generate" role="button" class="outline">Generate Next Week</a>
+        </p>
+        <p>
+            <a href="/meals" role="button" class="outline">Browse Meals</a>
+        </p>
+        <p>
+            <a href="/analytics" role="button" class="outline">View Analytics</a>
+        </p>
+    </div>
+</div>
+
+<!-- Season Info -->
+<div class="card">
+    <h3>Current Season: {{ season.title() }}</h3>
+    <p>Seasonal meal suggestions are prioritized in plan generation.</p>
+</div>
+
+<!-- Recent Plans -->
+<h2>Recent Plans</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Week</th>
+            <th>Start Date</th>
+            <th>Meals</th>
+            <th>Soups</th>
+            <th>Mains</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for plan in recent_plans %}
+        <tr>
+            <td>W{{ plan.week_number }}/{{ plan.year }}</td>
+            <td>{{ plan.start_date }}</td>
+            <td>{{ plan.meal_count }}</td>
+            <td>{{ plan.soup_count }}</td>
+            <td>{{ plan.main_count }}</td>
+            <td><a href="/plans/{{ plan.year }}/{{ plan.week_number }}">View</a></td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6"><em>No plans yet</em></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

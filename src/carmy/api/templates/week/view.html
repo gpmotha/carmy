@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+
+{% block title %}Week {{ week_number }} - {{ year }}{% endblock %}
+
+{% block head %}
+<style>
+    /* Week header */
+    .week-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .week-header h1 {
+        margin: 0;
+    }
+
+    .week-nav {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .week-nav a {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        background: var(--muted-border-color);
+        text-decoration: none;
+        color: var(--color);
+    }
+
+    .week-nav a:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    .week-dates {
+        color: var(--muted-color);
+        font-size: 1rem;
+    }
+
+    /* Summary stats */
+    .week-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-stat {
+        text-align: center;
+        padding: 0.75rem;
+        background: var(--card-background-color);
+        border-radius: 8px;
+        border: 1px solid var(--muted-border-color);
+    }
+
+    .summary-stat .value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .summary-stat .label {
+        font-size: 0.75rem;
+        color: var(--muted-color);
+    }
+
+    .summary-stat.fresh .value { color: #22c55e; }
+    .summary-stat.leftover .value { color: #eab308; }
+    .summary-stat.light .value { color: #3b82f6; }
+    .summary-stat.soup .value { color: #8b5cf6; }
+
+    /* Day timeline */
+    .day-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .day-card {
+        background: var(--card-background-color);
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--muted-border-color);
+    }
+
+    .day-card.today {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.2);
+    }
+
+    .day-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background: var(--muted-border-color);
+    }
+
+    .day-card.today .day-header {
+        background: var(--primary);
+        color: white;
+    }
+
+    .day-name {
+        font-weight: bold;
+        font-size: 1rem;
+    }
+
+    .day-date {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+
+    .day-body {
+        padding: 1rem;
+    }
+
+    /* Meal slots */
+    .meal-slots {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .meal-slot {
+        background: var(--background-color);
+        border-radius: 8px;
+        padding: 0.75rem;
+        border: 1px solid var(--muted-border-color);
+        position: relative;
+    }
+
+    .meal-slot.fresh { border-left: 4px solid #22c55e; }
+    .meal-slot.leftover { border-left: 4px solid #eab308; }
+    .meal-slot.light { border-left: 4px solid #3b82f6; }
+    .meal-slot.eat_out { border-left: 4px solid #ec4899; }
+    .meal-slot.soup { border-left: 4px solid #8b5cf6; }
+
+    .slot-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .slot-time {
+        font-size: 0.75rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: var(--muted-color);
+    }
+
+    .slot-source {
+        font-size: 0.625rem;
+        padding: 0.125rem 0.375rem;
+        border-radius: 999px;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    .slot-source.fresh { background: #dcfce7; color: #166534; }
+    .slot-source.leftover { background: #fef9c3; color: #854d0e; }
+    .slot-source.light { background: #dbeafe; color: #1e40af; }
+    .slot-source.eat_out { background: #fce7f3; color: #9d174d; }
+
+    [data-theme="dark"] .slot-source.fresh { background: #14532d; color: #bbf7d0; }
+    [data-theme="dark"] .slot-source.leftover { background: #713f12; color: #fef08a; }
+    [data-theme="dark"] .slot-source.light { background: #1e3a8a; color: #bfdbfe; }
+    [data-theme="dark"] .slot-source.eat_out { background: #831843; color: #fbcfe8; }
+
+    .slot-meal {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .slot-meal.empty {
+        color: var(--muted-color);
+        font-style: italic;
+        font-weight: normal;
+    }
+
+    .slot-meta {
+        font-size: 0.75rem;
+        color: var(--muted-color);
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .leftover-day {
+        background: #fef9c3;
+        color: #854d0e;
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+        font-size: 0.625rem;
+        font-weight: bold;
+    }
+
+    [data-theme="dark"] .leftover-day {
+        background: #713f12;
+        color: #fef08a;
+    }
+
+    /* Status controls */
+    .slot-status {
+        display: flex;
+        gap: 0.25rem;
+        margin-top: 0.5rem;
+    }
+
+    .status-btn {
+        flex: 1;
+        padding: 0.25rem;
+        font-size: 0.625rem;
+        border: 1px solid var(--muted-border-color);
+        background: transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: all 0.2s;
+    }
+
+    .status-btn:hover {
+        background: var(--muted-border-color);
+    }
+
+    .status-btn.active {
+        font-weight: bold;
+    }
+
+    .status-btn.planned.active {
+        background: #dbeafe;
+        border-color: #3b82f6;
+        color: #1e40af;
+    }
+
+    .status-btn.completed.active {
+        background: #dcfce7;
+        border-color: #22c55e;
+        color: #166534;
+    }
+
+    .status-btn.skipped.active {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+        color: #6b7280;
+    }
+
+    [data-theme="dark"] .status-btn.planned.active {
+        background: #1e3a8a;
+        color: #bfdbfe;
+    }
+
+    [data-theme="dark"] .status-btn.completed.active {
+        background: #14532d;
+        color: #bbf7d0;
+    }
+
+    [data-theme="dark"] .status-btn.skipped.active {
+        background: #374151;
+        color: #d1d5db;
+    }
+
+    /* Soup indicator */
+    .soup-badge {
+        background: #ede9fe;
+        color: #6d28d9;
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+        font-size: 0.625rem;
+        font-weight: bold;
+    }
+
+    [data-theme="dark"] .soup-badge {
+        background: #4c1d95;
+        color: #ddd6fe;
+    }
+
+    /* Empty day */
+    .empty-day {
+        text-align: center;
+        padding: 2rem;
+        color: var(--muted-color);
+    }
+
+    /* Actions */
+    .week-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .week-actions button {
+        margin: 0;
+    }
+
+    /* Materialize prompt */
+    .materialize-prompt {
+        text-align: center;
+        padding: 3rem;
+        background: var(--card-background-color);
+        border-radius: 12px;
+        border: 2px dashed var(--muted-border-color);
+    }
+
+    .materialize-prompt h2 {
+        margin-bottom: 0.5rem;
+    }
+
+    .materialize-prompt p {
+        color: var(--muted-color);
+        margin-bottom: 1.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .week-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .meal-slots {
+            grid-template-columns: 1fr;
+        }
+
+        .week-summary {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="week-header">
+    <div>
+        <h1>Week {{ week_number }}, {{ year }}</h1>
+        <div class="week-dates">{{ start_date.strftime('%B %d') }} - {{ end_date.strftime('%B %d, %Y') }}</div>
+    </div>
+    <div class="week-nav">
+        <a href="/week/{{ prev_year }}/{{ prev_week }}">Prev</a>
+        <a href="/week/{{ current_year }}/{{ current_week }}">Today</a>
+        <a href="/week/{{ next_year }}/{{ next_week }}">Next</a>
+    </div>
+</div>
+
+{% if not skeleton %}
+<div class="materialize-prompt">
+    <h2>No Week Plan</h2>
+    <p>This week doesn't have a plan yet. Create one from the month planning view.</p>
+    <a href="/month/setup" role="button">Plan Month</a>
+</div>
+{% elif not has_slots %}
+<div class="materialize-prompt">
+    <h2>Week Not Materialized</h2>
+    <p>This week has {{ cooking_events_count }} cooking event(s) but no meal slots yet.</p>
+    <form hx-post="/api/weeks/{{ year }}/{{ week_number }}/materialize"
+          hx-target="#week-content"
+          hx-swap="innerHTML"
+          hx-indicator=".spinner">
+        <button type="submit">
+            <span class="spinner htmx-indicator"></span>
+            Materialize Week
+        </button>
+    </form>
+</div>
+{% else %}
+<!-- Summary stats -->
+<div class="week-summary">
+    <div class="summary-stat fresh">
+        <div class="value">{{ summary.fresh_meals }}</div>
+        <div class="label">Fresh</div>
+    </div>
+    <div class="summary-stat leftover">
+        <div class="value">{{ summary.leftover_meals }}</div>
+        <div class="label">Leftover</div>
+    </div>
+    <div class="summary-stat light">
+        <div class="value">{{ summary.light_meals }}</div>
+        <div class="label">Light</div>
+    </div>
+    {% if summary.soups > 0 %}
+    <div class="summary-stat soup">
+        <div class="value">{{ summary.soups }}</div>
+        <div class="label">Soups</div>
+    </div>
+    {% endif %}
+    <div class="summary-stat">
+        <div class="value">{{ summary.dinners }}</div>
+        <div class="label">Dinners</div>
+    </div>
+    <div class="summary-stat">
+        <div class="value">{{ summary.lunches }}</div>
+        <div class="label">Lunches</div>
+    </div>
+</div>
+
+<!-- Week actions -->
+<div class="week-actions" style="margin-bottom: 1rem;">
+    <form hx-post="/api/weeks/{{ year }}/{{ week_number }}/materialize"
+          hx-target="body"
+          hx-swap="none"
+          hx-on::after-request="location.reload()"
+          style="display: inline;">
+        <button type="submit" class="secondary outline" style="margin: 0;">
+            Re-materialize
+        </button>
+    </form>
+    <a href="/month/{{ year }}/{{ month }}" role="button" class="outline" style="margin: 0;">
+        View Month
+    </a>
+</div>
+
+<!-- Day timeline -->
+<div id="week-content" class="day-timeline">
+    {% for day in days %}
+    <div class="day-card{% if day.is_today %} today{% endif %}">
+        <div class="day-header">
+            <span class="day-name">{{ day.day_name }}</span>
+            <span class="day-date">{{ day.date.strftime('%b %d') }}</span>
+        </div>
+        <div class="day-body">
+            {% if day.slots %}
+            <div class="meal-slots">
+                {% for slot in day.slots %}
+                <div class="meal-slot {{ slot.source }}{% if slot.is_soup %} soup{% endif %}" data-slot-id="{{ slot.id }}">
+                    <div class="slot-header">
+                        <span class="slot-time">
+                            {{ slot.meal_time }}
+                            {% if slot.is_soup %}
+                            <span class="soup-badge">Soup</span>
+                            {% endif %}
+                        </span>
+                        <span class="slot-source {{ slot.source }}">{{ slot.source }}</span>
+                    </div>
+                    <div class="slot-meal{% if not slot.meal_name %} empty{% endif %}">
+                        {{ slot.meal_name or 'Light meal' }}
+                    </div>
+                    <div class="slot-meta">
+                        {% if slot.leftover_day and slot.leftover_day > 1 %}
+                        <span class="leftover-day">Day {{ slot.leftover_day }}</span>
+                        {% endif %}
+                        {% if slot.meal_type %}
+                        <span>{{ slot.meal_type }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="slot-status">
+                        <button type="button"
+                                class="status-btn planned{% if slot.status == 'planned' %} active{% endif %}"
+                                hx-post="/api/weeks/slots/{{ slot.id }}/status"
+                                hx-vals='{"status": "planned"}'
+                                hx-swap="none"
+                                hx-on::after-request="updateSlotStatus(this, 'planned')">
+                            Planned
+                        </button>
+                        <button type="button"
+                                class="status-btn completed{% if slot.status == 'completed' %} active{% endif %}"
+                                hx-post="/api/weeks/slots/{{ slot.id }}/status"
+                                hx-vals='{"status": "completed"}'
+                                hx-swap="none"
+                                hx-on::after-request="updateSlotStatus(this, 'completed')">
+                            Done
+                        </button>
+                        <button type="button"
+                                class="status-btn skipped{% if slot.status == 'skipped' %} active{% endif %}"
+                                hx-post="/api/weeks/slots/{{ slot.id }}/status"
+                                hx-vals='{"status": "skipped"}'
+                                hx-swap="none"
+                                hx-on::after-request="updateSlotStatus(this, 'skipped')">
+                            Skip
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-day">
+                No meals planned
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateSlotStatus(btn, status) {
+        // Remove active from siblings
+        const container = btn.parentElement;
+        container.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+        // Add active to clicked
+        btn.classList.add('active');
+        // Show toast
+        showToast(`Marked as ${status}`, 'success', 2000);
+    }
+</script>
+{% endblock %}

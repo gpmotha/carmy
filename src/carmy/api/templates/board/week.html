@@ -1,0 +1,1042 @@
+{% extends "base.html" %}
+
+{% block title %}Planning Board - Week {{ week.week }}{% endblock %}
+
+{% block head %}
+<style>
+    /* Board Layout */
+    .board-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .board-header h1 {
+        margin: 0;
+    }
+
+    .board-nav {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .board-nav a, .board-nav button {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        background: var(--secondary);
+        color: var(--secondary-inverse);
+        border: none;
+        cursor: pointer;
+    }
+
+    .board-nav a:hover, .board-nav button:hover {
+        filter: brightness(0.9);
+    }
+
+    /* View toggle tabs */
+    .view-toggle {
+        display: flex;
+        gap: 0;
+        margin-bottom: 1rem;
+    }
+
+    .view-toggle a {
+        padding: 0.5rem 1.5rem;
+        text-decoration: none;
+        background: var(--muted-border-color);
+        color: var(--color);
+        border: 1px solid var(--muted-border-color);
+    }
+
+    .view-toggle a:first-child {
+        border-radius: 4px 0 0 4px;
+    }
+
+    .view-toggle a:last-child {
+        border-radius: 0 4px 4px 0;
+    }
+
+    .view-toggle a.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .view-toggle a:hover:not(.active) {
+        background: var(--muted-color);
+    }
+
+    .board-container {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 1rem;
+        min-height: 70vh;
+    }
+
+    /* Week Grid */
+    .week-grid {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 2px;
+        background: var(--muted-border-color);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .grid-header {
+        background: var(--primary);
+        color: white;
+        padding: 0.5rem;
+        text-align: center;
+        font-weight: bold;
+        font-size: 0.875rem;
+    }
+
+    .grid-header.today {
+        background: var(--primary-hover);
+    }
+
+    .slot-label {
+        background: var(--card-background-color);
+        padding: 0.5rem;
+        font-weight: bold;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .slot-label.breakfast { border-left: 3px solid #f59e0b; }
+    .slot-label.lunch { border-left: 3px solid #10b981; }
+    .slot-label.dinner { border-left: 3px solid #6366f1; }
+    .slot-label.snack { border-left: 3px solid #ec4899; }
+
+    /* Slot cells */
+    .slot {
+        background: var(--card-background-color);
+        min-height: 80px;
+        padding: 0.25rem;
+        position: relative;
+        transition: background 0.2s;
+    }
+
+    .slot:hover {
+        background: var(--muted-border-color);
+    }
+
+    .slot.empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .slot.empty::after {
+        content: '+';
+        color: var(--muted-color);
+        font-size: 1.5rem;
+        opacity: 0.3;
+    }
+
+    .slot.empty:hover::after {
+        opacity: 0.6;
+    }
+
+    /* Meal cards in slots */
+    .slot-meal {
+        background: var(--background-color);
+        border: 1px solid var(--muted-border-color);
+        border-radius: 4px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        cursor: grab;
+        position: relative;
+    }
+
+    .slot-meal:active {
+        cursor: grabbing;
+    }
+
+    .slot-meal .meal-name {
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .slot-meal .meal-meta {
+        display: flex;
+        gap: 0.25rem;
+        margin-top: 0.125rem;
+    }
+
+    .slot-meal .badge {
+        font-size: 0.625rem;
+        padding: 0 0.25rem;
+        border-radius: 2px;
+    }
+
+    .slot-meal .badge.leftover {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .slot-meal .badge.portions {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .slot-meal .remove-btn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 16px;
+        height: 16px;
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 0 4px 0 4px;
+        font-size: 10px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .slot-meal:hover .remove-btn {
+        opacity: 1;
+    }
+
+    /* Leftover chain indicator */
+    .slot-meal.chain-start {
+        border-left: 4px solid #22c55e;
+        background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, transparent 100%);
+    }
+    .slot-meal.chain-middle {
+        border-left: 4px solid #eab308;
+        background: linear-gradient(90deg, rgba(234, 179, 8, 0.1) 0%, transparent 100%);
+    }
+    .slot-meal.chain-end {
+        border-left: 4px solid #ef4444;
+        background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%);
+    }
+
+    /* Chain status icon */
+    .slot-meal .chain-icon {
+        font-size: 0.75rem;
+        margin-right: 0.25rem;
+    }
+
+    .slot-meal.chain-start .chain-icon::before { content: '🍳'; }
+    .slot-meal.chain-middle .chain-icon::before { content: '♻️'; }
+    .slot-meal.chain-end .chain-icon::before { content: '🔚'; }
+
+    /* Portion badge colors */
+    .slot-meal .badge.portions-high {
+        background: #dcfce7;
+        color: #166534;
+    }
+    .slot-meal .badge.portions-medium {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    .slot-meal .badge.portions-low {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    [data-theme="dark"] .slot-meal .badge.portions-high {
+        background: #14532d;
+        color: #bbf7d0;
+    }
+    [data-theme="dark"] .slot-meal .badge.portions-medium {
+        background: #78350f;
+        color: #fde68a;
+    }
+    [data-theme="dark"] .slot-meal .badge.portions-low {
+        background: #7f1d1d;
+        color: #fecaca;
+    }
+
+    [data-theme="dark"] .slot-meal.chain-start {
+        background: linear-gradient(90deg, rgba(34, 197, 94, 0.2) 0%, transparent 100%);
+    }
+    [data-theme="dark"] .slot-meal.chain-middle {
+        background: linear-gradient(90deg, rgba(234, 179, 8, 0.2) 0%, transparent 100%);
+    }
+    [data-theme="dark"] .slot-meal.chain-end {
+        background: linear-gradient(90deg, rgba(239, 68, 68, 0.2) 0%, transparent 100%);
+    }
+
+    /* Meal Pool Sidebar */
+    .meal-pool {
+        background: var(--card-background-color);
+        border-radius: 8px;
+        padding: 0.5rem;
+        overflow-y: auto;
+        max-height: 70vh;
+    }
+
+    .pool-search {
+        position: sticky;
+        top: 0;
+        background: var(--card-background-color);
+        padding-bottom: 0.5rem;
+        z-index: 10;
+    }
+
+    .pool-search input {
+        margin: 0;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .pool-section {
+        margin-bottom: 1rem;
+    }
+
+    .pool-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        background: var(--muted-border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 0.875rem;
+    }
+
+    .pool-section-header:hover {
+        filter: brightness(0.95);
+    }
+
+    .pool-items {
+        padding: 0.25rem 0;
+    }
+
+    .pool-meal {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.375rem 0.5rem;
+        margin: 0.125rem 0;
+        background: var(--background-color);
+        border: 1px solid transparent;
+        border-radius: 4px;
+        cursor: grab;
+        font-size: 0.75rem;
+        transition: all 0.2s;
+    }
+
+    .pool-meal:hover {
+        border-color: var(--primary);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .pool-meal:active {
+        cursor: grabbing;
+    }
+
+    .pool-meal .portions-badge {
+        background: var(--primary);
+        color: white;
+        padding: 0 0.375rem;
+        border-radius: 999px;
+        font-size: 0.625rem;
+        font-weight: bold;
+    }
+
+    /* Suggestions section */
+    .suggestions {
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border-radius: 8px;
+    }
+
+    [data-theme="dark"] .suggestions {
+        background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+    }
+
+    .suggestions h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    /* Drag preview */
+    .sortable-ghost {
+        opacity: 0.4;
+    }
+
+    .sortable-drag {
+        opacity: 0.9;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    /* Print styles */
+    @media print {
+        .meal-pool, .board-nav, .view-toggle, nav, footer, .pool-search {
+            display: none !important;
+        }
+
+        .board-container {
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+
+        .board-header {
+            margin-bottom: 0.5rem;
+        }
+
+        .board-header h1 {
+            font-size: 1.25rem;
+        }
+
+        .week-grid {
+            break-inside: avoid;
+            border: 2px solid #333;
+        }
+
+        .grid-header {
+            background: #333 !important;
+            color: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .slot-label {
+            background: #f5f5f5 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .slot {
+            border: 1px solid #ddd;
+            min-height: 60px;
+        }
+
+        .slot-meal {
+            border: 1px solid #999;
+            background: #f9f9f9 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .slot-meal .remove-btn {
+            display: none;
+        }
+
+        .slot-meal.chain-start,
+        .slot-meal.chain-middle,
+        .slot-meal.chain-end {
+            border-left-width: 4px !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-size: 11pt;
+        }
+
+        /* Print header */
+        .board-header::after {
+            content: "Weekly Meal Plan";
+            display: block;
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+    }
+
+    /* Keyboard shortcut hints */
+    .keyboard-hint {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        background: var(--card-background-color);
+        border: 1px solid var(--muted-border-color);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        z-index: 100;
+        opacity: 0.9;
+    }
+
+    .keyboard-hint kbd {
+        background: var(--muted-border-color);
+        padding: 0.125rem 0.375rem;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 0.75rem;
+    }
+
+    .keyboard-hint.hidden {
+        display: none;
+    }
+
+    @media print {
+        .keyboard-hint {
+            display: none !important;
+        }
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .board-container {
+            grid-template-columns: 1fr;
+        }
+
+        .meal-pool {
+            order: 2;
+            max-height: none;
+        }
+
+        .week-grid {
+            order: 1;
+            overflow-x: auto;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .week-grid {
+            grid-template-columns: 60px repeat(7, minmax(80px, 1fr));
+            font-size: 0.75rem;
+        }
+
+        .grid-header {
+            padding: 0.25rem;
+            font-size: 0.75rem;
+        }
+
+        .slot {
+            min-height: 60px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="board-header">
+    <div>
+        <h1>Week {{ week.week }}, {{ week.year }}</h1>
+        <p style="margin: 0; color: var(--muted-color);">
+            {{ week.start_date.strftime('%b %d') }} - {{ week.end_date.strftime('%b %d, %Y') }}
+        </p>
+    </div>
+    <div class="board-nav">
+        <a href="/board/week/{{ prev_year }}/{{ prev_week }}">&larr; Prev</a>
+        <a href="/board">Today</a>
+        <a href="/board/week/{{ next_year }}/{{ next_week }}">Next &rarr;</a>
+        <button onclick="window.print()">Print</button>
+    </div>
+</div>
+
+<!-- View Toggle -->
+<div class="view-toggle">
+    <a href="/board" class="active">Weekly</a>
+    <a href="/board/month">Monthly</a>
+</div>
+
+<div class="board-container">
+    <!-- Meal Pool Sidebar -->
+    <aside class="meal-pool">
+        <div class="pool-search">
+            <input type="search"
+                   placeholder="Search meals..."
+                   hx-get="/htmx/board/search"
+                   hx-trigger="keyup changed delay:300ms"
+                   hx-target="#pool-results"
+                   name="q">
+        </div>
+
+        {% if suggestions %}
+        <div class="suggestions">
+            <h4>Seasonal Suggestions</h4>
+            <div class="pool-items" id="suggestions-list">
+                {% for meal in suggestions %}
+                <div class="pool-meal" draggable="true" data-meal-id="{{ meal.id }}" data-portions="{{ meal.default_portions }}">
+                    <span>{{ meal.name }}</span>
+                    {% if meal.default_portions > 1 %}
+                    <span class="portions-badge">[{{ meal.default_portions }}]</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="pool-results">
+            {% for section in pool %}
+            <div class="pool-section">
+                <div class="pool-section-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                    <span>{{ section.emoji }} {{ section.label }}</span>
+                    <span>{{ section.meals|length }}</span>
+                </div>
+                <div class="pool-items">
+                    {% for meal in section.meals %}
+                    <div class="pool-meal" draggable="true" data-meal-id="{{ meal.id }}" data-portions="{{ meal.default_portions }}">
+                        <span>{{ meal.name }}</span>
+                        {% if meal.default_portions > 1 %}
+                        <span class="portions-badge">[{{ meal.default_portions }}]</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if recently_used %}
+        <div class="pool-section">
+            <div class="pool-section-header">
+                <span>Recently Used</span>
+            </div>
+            <div class="pool-items">
+                {% for meal in recently_used %}
+                <div class="pool-meal" draggable="true" data-meal-id="{{ meal.id }}" data-portions="{{ meal.default_portions }}">
+                    <span>{{ meal.name }}</span>
+                    {% if meal.default_portions > 1 %}
+                    <span class="portions-badge">[{{ meal.default_portions }}]</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </aside>
+
+    <!-- Week Grid -->
+    <div class="week-grid">
+        <!-- Header row -->
+        <div class="grid-header"></div>
+        {% for day in week.days %}
+        <div class="grid-header {% if day.date == today %}today{% endif %}">
+            {{ day.day_name[:3] }}<br>
+            <small>{{ day.date.day }}</small>
+        </div>
+        {% endfor %}
+
+        {# Macro for rendering a slot meal card #}
+        {% macro render_slot_meal(slot) %}
+        <div class="slot-meal {% if slot.chain_id %}{% if slot.is_leftover %}{% if slot.portions_remaining == 1 %}chain-end{% else %}chain-middle{% endif %}{% else %}chain-start{% endif %}{% endif %}"
+             data-plan-meal-id="{{ slot.plan_meal_id }}"
+             data-chain-id="{{ slot.chain_id or '' }}">
+            <div class="meal-name">
+                {% if slot.chain_id %}<span class="chain-icon"></span>{% endif %}
+                {{ slot.meal.name }}
+            </div>
+            <div class="meal-meta">
+                {% if slot.portions_remaining %}
+                <span class="badge {% if slot.portions_remaining >= 3 %}portions-high{% elif slot.portions_remaining == 2 %}portions-medium{% else %}portions-low{% endif %}">
+                    {{ slot.portions_remaining }} left
+                </span>
+                {% endif %}
+            </div>
+            <button class="remove-btn" onclick="event.stopPropagation();">x</button>
+        </div>
+        {% endmacro %}
+
+        <!-- Breakfast row -->
+        <div class="slot-label breakfast">Breakfast</div>
+        {% for day in week.days %}
+        <div class="slot {% if not day.slots.breakfast.meal %}empty{% endif %}"
+             data-day="{{ day.day_of_week }}"
+             data-slot="breakfast">
+            {% if day.slots.breakfast.meal %}
+            {{ render_slot_meal(day.slots.breakfast) }}
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- Lunch row -->
+        <div class="slot-label lunch">Lunch</div>
+        {% for day in week.days %}
+        <div class="slot {% if not day.slots.lunch.meal %}empty{% endif %}"
+             data-day="{{ day.day_of_week }}"
+             data-slot="lunch">
+            {% if day.slots.lunch.meal %}
+            {{ render_slot_meal(day.slots.lunch) }}
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- Dinner row -->
+        <div class="slot-label dinner">Dinner</div>
+        {% for day in week.days %}
+        <div class="slot {% if not day.slots.dinner.meal %}empty{% endif %}"
+             data-day="{{ day.day_of_week }}"
+             data-slot="dinner">
+            {% if day.slots.dinner.meal %}
+            {{ render_slot_meal(day.slots.dinner) }}
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- Snack row -->
+        <div class="slot-label snack">Snack</div>
+        {% for day in week.days %}
+        <div class="slot {% if not day.slots.snack.meal %}empty{% endif %}"
+             data-day="{{ day.day_of_week }}"
+             data-slot="snack">
+            {% if day.slots.snack.meal %}
+            {{ render_slot_meal(day.slots.snack) }}
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Keyboard shortcuts hint -->
+<div class="keyboard-hint" id="keyboard-hint">
+    <strong>Shortcuts:</strong><br>
+    <kbd>P</kbd> Print &bull;
+    <kbd>&larr;</kbd> Prev week &bull;
+    <kbd>&rarr;</kbd> Next week &bull;
+    <kbd>T</kbd> Today &bull;
+    <kbd>M</kbd> Month view &bull;
+    <kbd>?</kbd> Toggle hints
+</div>
+
+<!-- Hidden utility classes -->
+<style>
+    .hidden { display: none !important; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- SortableJS for drag and drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+// Board configuration
+const BOARD_CONFIG = {
+    year: {{ week.year }},
+    week: {{ week.week }}
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Make pool sections collapsible
+    initCollapsibleSections();
+
+    // Initialize drag and drop
+    initializeDragDrop();
+
+    // Reinitialize drag-drop after HTMX swaps (for search results)
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'pool-results') {
+            initializeDragDrop();
+        }
+    });
+
+    // Clear search when input is emptied
+    document.querySelector('.pool-search input').addEventListener('input', function() {
+        if (this.value === '') {
+            // Reload to restore original pool
+            location.reload();
+        }
+    });
+});
+
+function initCollapsibleSections() {
+    document.querySelectorAll('.pool-section-header').forEach(header => {
+        const key = 'pool-' + header.textContent.trim();
+        const items = header.nextElementSibling;
+        if (localStorage.getItem(key) === 'collapsed') {
+            items.classList.add('hidden');
+        }
+        header.addEventListener('click', function() {
+            items.classList.toggle('hidden');
+            localStorage.setItem(key, items.classList.contains('hidden') ? 'collapsed' : 'expanded');
+        });
+    });
+}
+
+function initializeDragDrop() {
+    // Make all pool item containers draggable sources
+    document.querySelectorAll('.pool-items').forEach(poolItems => {
+        new Sortable(poolItems, {
+            group: {
+                name: 'meals',
+                pull: 'clone',
+                put: false
+            },
+            sort: false,
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            onEnd: function(evt) {
+                // If dropped back in pool, just remove the clone
+                if (evt.to.classList.contains('pool-items')) {
+                    evt.item.remove();
+                }
+            }
+        });
+    });
+
+    // Make all slots droppable targets
+    document.querySelectorAll('.slot').forEach(slot => {
+        new Sortable(slot, {
+            group: {
+                name: 'meals',
+                pull: true,
+                put: true
+            },
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            onAdd: function(evt) {
+                handleDrop(evt);
+            },
+            onUpdate: function(evt) {
+                // Internal reorder within same slot - not needed
+            },
+            onRemove: function(evt) {
+                // Item was moved out - handled by target's onAdd
+            }
+        });
+    });
+}
+
+async function handleDrop(evt) {
+    const item = evt.item;
+    const targetSlot = evt.to;
+    const day = parseInt(targetSlot.dataset.day);
+    const slotType = targetSlot.dataset.slot;
+
+    // Check if this is from pool (has data-meal-id) or from another slot (has data-plan-meal-id)
+    const mealId = item.dataset.mealId;
+    const planMealId = item.dataset.planMealId;
+    const portions = parseInt(item.dataset.portions) || 1;
+
+    if (mealId) {
+        // New meal from pool - check if multi-portion
+        if (portions > 1) {
+            // Show portion dialog
+            showPortionDialog(mealId, day, slotType, portions, item);
+        } else {
+            // Single portion - just assign
+            await assignMeal(mealId, day, slotType, 1, false);
+            location.reload();
+        }
+    } else if (planMealId) {
+        // Moving existing meal between slots
+        await moveMeal(planMealId, day, slotType);
+        location.reload();
+    }
+}
+
+function showPortionDialog(mealId, day, slotType, maxPortions, draggedItem) {
+    const daysLeft = 7 - day;
+    const maxDays = Math.min(maxPortions, daysLeft);
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const startDay = dayNames[day];
+    const endDay = dayNames[Math.min(day + maxDays - 1, 6)];
+
+    // Create modal
+    const modal = document.createElement('dialog');
+    modal.className = 'portion-dialog';
+    modal.innerHTML = `
+        <article style="margin: 0; padding: 1.5rem; min-width: 300px;">
+            <header style="margin-bottom: 1rem;">
+                <h3 style="margin: 0;">This meal makes ${maxPortions} portions</h3>
+                <p style="margin: 0.5rem 0 0; color: var(--muted-color);">Fill multiple days with leftovers?</p>
+            </header>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <button class="fill-btn" data-days="${maxDays}">
+                    Fill ${maxDays} days (${startDay}-${endDay})
+                </button>
+                <button class="fill-btn secondary" data-days="1">
+                    Just ${startDay}
+                </button>
+                <button class="cancel-btn outline" style="margin-top: 0.5rem;">Cancel</button>
+            </div>
+        </article>
+    `;
+
+    document.body.appendChild(modal);
+    modal.showModal();
+
+    // Handle button clicks
+    modal.querySelectorAll('.fill-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const chainDays = parseInt(this.dataset.days);
+            modal.close();
+            modal.remove();
+            await assignMeal(mealId, day, slotType, chainDays, chainDays > 1);
+            location.reload();
+        });
+    });
+
+    modal.querySelector('.cancel-btn').addEventListener('click', function() {
+        modal.close();
+        modal.remove();
+        // Remove the dragged item since cancelled
+        draggedItem.remove();
+    });
+
+    // Close on backdrop click
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.close();
+            modal.remove();
+            draggedItem.remove();
+        }
+    });
+}
+
+async function assignMeal(mealId, day, slotType, chainDays, createChain) {
+    try {
+        const response = await fetch('/api/board/slot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                year: BOARD_CONFIG.year,
+                week: BOARD_CONFIG.week,
+                day_of_week: day,
+                meal_slot: slotType,
+                meal_id: parseInt(mealId),
+                create_chain: createChain,
+                chain_days: chainDays
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to assign meal');
+        }
+
+        const data = await response.json();
+        showToast('Meal assigned!', 'success');
+        return data;
+    } catch (error) {
+        console.error('Error assigning meal:', error);
+        showToast('Failed to assign meal', 'error');
+    }
+}
+
+async function moveMeal(planMealId, day, slotType) {
+    try {
+        const response = await fetch(`/api/board/slot/${planMealId}?day_of_week=${day}&meal_slot=${slotType}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to move meal');
+        }
+
+        showToast('Meal moved!', 'success');
+    } catch (error) {
+        console.error('Error moving meal:', error);
+        showToast('Failed to move meal', 'error');
+    }
+}
+
+async function removeMeal(planMealId) {
+    try {
+        const response = await fetch(`/api/board/slot/${planMealId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to remove meal');
+        }
+
+        showToast('Meal removed!', 'success');
+        return true;
+    } catch (error) {
+        console.error('Error removing meal:', error);
+        showToast('Failed to remove meal', 'error');
+        return false;
+    }
+}
+
+// Handle remove button clicks
+document.addEventListener('click', async function(e) {
+    if (e.target.classList.contains('remove-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const slotMeal = e.target.closest('.slot-meal');
+        const planMealId = slotMeal.dataset.planMealId;
+
+        if (confirm('Remove this meal from the plan?')) {
+            const success = await removeMeal(planMealId);
+            if (success) {
+                slotMeal.remove();
+                // Mark parent slot as empty
+                const slot = slotMeal.closest('.slot');
+                if (slot && !slot.querySelector('.slot-meal')) {
+                    slot.classList.add('empty');
+                }
+            }
+        }
+    }
+});
+
+// ============== KEYBOARD SHORTCUTS ==============
+
+document.addEventListener('keydown', function(e) {
+    // Don't trigger shortcuts when typing in input fields
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+    }
+
+    switch(e.key.toLowerCase()) {
+        case 'p':
+            // Print
+            window.print();
+            break;
+        case 'arrowleft':
+            // Previous week
+            window.location.href = '/board/week/{{ prev_year }}/{{ prev_week }}';
+            break;
+        case 'arrowright':
+            // Next week
+            window.location.href = '/board/week/{{ next_year }}/{{ next_week }}';
+            break;
+        case 't':
+            // Today
+            window.location.href = '/board';
+            break;
+        case 'm':
+            // Month view
+            window.location.href = '/board/month';
+            break;
+        case '/':
+            // Focus search
+            e.preventDefault();
+            document.querySelector('.pool-search input').focus();
+            break;
+        case '?':
+            // Toggle keyboard hints
+            const hint = document.getElementById('keyboard-hint');
+            hint.classList.toggle('hidden');
+            localStorage.setItem('board-keyboard-hint', hint.classList.contains('hidden') ? 'hidden' : 'visible');
+            break;
+        case 'escape':
+            // Blur search
+            document.activeElement.blur();
+            break;
+    }
+});
+
+// Restore keyboard hint visibility from localStorage
+(function() {
+    const hint = document.getElementById('keyboard-hint');
+    if (localStorage.getItem('board-keyboard-hint') === 'hidden') {
+        hint.classList.add('hidden');
+    }
+})();
+</script>
+{% endblock %}

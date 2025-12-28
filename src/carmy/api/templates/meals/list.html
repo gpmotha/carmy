@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Meals{% endblock %}
+
+{% block content %}
+<h1>Meal Catalog</h1>
+<p id="meal-count">{{ total_meals }} meals in your catalog</p>
+
+<!-- Filters with live search -->
+<form class="filters" id="meal-filters">
+    <div class="search-input">
+        <label for="search">Search</label>
+        <input type="search"
+               id="search"
+               name="search"
+               placeholder="Search meals..."
+               value="{{ filters.search or '' }}"
+               hx-get="/htmx/meals/search"
+               hx-trigger="keyup changed delay:300ms, search"
+               hx-target="#meal-grid"
+               hx-include="#meal-filters"
+               hx-indicator="#search-spinner">
+        <span id="search-spinner" class="htmx-indicator search-loading">
+            <span class="spinner"></span>
+        </span>
+    </div>
+    <div>
+        <label for="meal_type">Type</label>
+        <select id="meal_type" name="meal_type"
+                hx-get="/htmx/meals/search"
+                hx-trigger="change"
+                hx-target="#meal-grid"
+                hx-include="#meal-filters">
+            <option value="">All Types</option>
+            {% for t in meal_types %}
+            <option value="{{ t }}" {% if filters.meal_type == t %}selected{% endif %}>{{ t.replace('_', ' ').title() }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="cuisine">Cuisine</label>
+        <select id="cuisine" name="cuisine"
+                hx-get="/htmx/meals/search"
+                hx-trigger="change"
+                hx-target="#meal-grid"
+                hx-include="#meal-filters">
+            <option value="">All Cuisines</option>
+            {% for c in cuisines %}
+            <option value="{{ c }}" {% if filters.cuisine == c %}selected{% endif %}>{{ c.title() }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label>Diet</label>
+        <fieldset>
+            <label>
+                <input type="checkbox" name="vegetarian" {% if filters.vegetarian %}checked{% endif %}
+                       hx-get="/htmx/meals/search"
+                       hx-trigger="change"
+                       hx-target="#meal-grid"
+                       hx-include="#meal-filters">
+                Vegetarian
+            </label>
+            <label>
+                <input type="checkbox" name="has_meat" {% if filters.has_meat %}checked{% endif %}
+                       hx-get="/htmx/meals/search"
+                       hx-trigger="change"
+                       hx-target="#meal-grid"
+                       hx-include="#meal-filters">
+                With Meat
+            </label>
+        </fieldset>
+    </div>
+    <div>
+        <a href="/meals" role="button" class="outline">Clear</a>
+    </div>
+</form>
+
+<!-- Meal Grid (HTMX target) -->
+<div id="meal-grid">
+    {% include "meals/_grid.html" %}
+</div>
+{% endblock %}

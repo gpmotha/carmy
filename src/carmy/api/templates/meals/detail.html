@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}{{ meal.name }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ul>
+        <li><a href="/meals">Meals</a></li>
+        <li>{{ meal.name }}</li>
+    </ul>
+</nav>
+
+<hgroup>
+    <h1 id="meal-name">{{ meal.name }}</h1>
+    <p id="meal-nev">{{ meal.nev }}</p>
+</hgroup>
+
+<div class="grid">
+    <div>
+        <!-- Meal Details with inline editing -->
+        <article id="meal-details">
+            <header>
+                <h3>Details
+                    <button class="btn-sm outline"
+                            hx-get="/htmx/meals/{{ meal.id }}/edit"
+                            hx-target="#meal-details"
+                            hx-swap="innerHTML">
+                        Edit
+                    </button>
+                </h3>
+            </header>
+            {% include "meals/_details_view.html" %}
+        </article>
+    </div>
+
+    <div>
+        <!-- Seasonality Scores -->
+        <article>
+            <header>
+                <h3>Seasonality Score</h3>
+            </header>
+            {% if seasonality %}
+            <table>
+                <tr>
+                    <th>Winter</th>
+                    <td>
+                        <progress value="{{ seasonality.winter }}" max="10"></progress>
+                        {{ "%.1f"|format(seasonality.winter) }}/10
+                    </td>
+                </tr>
+                <tr>
+                    <th>Spring</th>
+                    <td>
+                        <progress value="{{ seasonality.spring }}" max="10"></progress>
+                        {{ "%.1f"|format(seasonality.spring) }}/10
+                    </td>
+                </tr>
+                <tr>
+                    <th>Summer</th>
+                    <td>
+                        <progress value="{{ seasonality.summer }}" max="10"></progress>
+                        {{ "%.1f"|format(seasonality.summer) }}/10
+                    </td>
+                </tr>
+                <tr>
+                    <th>Autumn</th>
+                    <td>
+                        <progress value="{{ seasonality.autumn }}" max="10"></progress>
+                        {{ "%.1f"|format(seasonality.autumn) }}/10
+                    </td>
+                </tr>
+            </table>
+            {% else %}
+            <p>No seasonality data available.</p>
+            {% endif %}
+        </article>
+
+        <!-- Usage History -->
+        <article>
+            <header>
+                <h3>Usage History</h3>
+            </header>
+            {% if history %}
+            <p>Used <strong>{{ history|length }}</strong> times in plans.</p>
+            <details>
+                <summary>View history</summary>
+                <ul>
+                    {% for entry in history[:10] %}
+                    <li>
+                        <a href="/plans/{{ entry.year }}/{{ entry.week }}">
+                            Week {{ entry.week }}/{{ entry.year }}
+                        </a>
+                        {% if entry.is_leftover %}<small>(leftover)</small>{% endif %}
+                    </li>
+                    {% endfor %}
+                    {% if history|length > 10 %}
+                    <li><em>... and {{ history|length - 10 }} more</em></li>
+                    {% endif %}
+                </ul>
+            </details>
+            {% else %}
+            <p>This meal hasn't been used in any plans yet.</p>
+            {% endif %}
+        </article>
+    </div>
+</div>
+
+<footer>
+    <a href="/meals" role="button" class="outline">&larr; Back to Meals</a>
+</footer>
+{% endblock %}

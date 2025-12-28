@@ -1,0 +1,608 @@
+{% extends "base.html" %}
+
+{% block title %}Today - What's for Dinner?{% endblock %}
+
+{% block head %}
+<style>
+    /* Hero section */
+    .today-hero {
+        text-align: center;
+        padding: 2rem 1rem;
+        margin-bottom: 2rem;
+        background: linear-gradient(135deg, var(--primary) 0%, #d35400 100%);
+        border-radius: 16px;
+        color: white;
+    }
+
+    .today-hero h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+    }
+
+    .today-hero .date {
+        font-size: 1.25rem;
+        opacity: 0.9;
+    }
+
+    .today-hero .greeting {
+        font-size: 1rem;
+        opacity: 0.8;
+        margin-top: 0.5rem;
+    }
+
+    /* Main meal cards */
+    .meals-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .meal-hero-card {
+        background: var(--card-background-color);
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 2px solid var(--muted-border-color);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .meal-hero-card.dinner {
+        border-color: var(--primary);
+    }
+
+    .meal-hero-card.lunch {
+        border-color: #3b82f6;
+    }
+
+    .meal-hero-card.soup {
+        border-color: #8b5cf6;
+    }
+
+    .meal-time-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+    }
+
+    .meal-time-badge.dinner {
+        background: var(--primary);
+        color: white;
+    }
+
+    .meal-time-badge.lunch {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .meal-time-badge.soup {
+        background: #8b5cf6;
+        color: white;
+    }
+
+    .meal-hero-card h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+    }
+
+    .meal-hero-card .meal-meta {
+        color: var(--muted-color);
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Source indicator */
+    .source-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: var(--background-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .source-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .source-icon.fresh {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .source-icon.leftover {
+        background: #fef9c3;
+        color: #854d0e;
+    }
+
+    .source-icon.light {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    [data-theme="dark"] .source-icon.fresh {
+        background: #14532d;
+        color: #bbf7d0;
+    }
+
+    [data-theme="dark"] .source-icon.leftover {
+        background: #713f12;
+        color: #fef08a;
+    }
+
+    [data-theme="dark"] .source-icon.light {
+        background: #1e3a8a;
+        color: #bfdbfe;
+    }
+
+    .source-text h4 {
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .source-text p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--muted-color);
+    }
+
+    /* Action buttons */
+    .meal-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .meal-actions button {
+        margin: 0;
+        flex: 1;
+    }
+
+    /* Status display */
+    .status-display {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+
+    .status-display.planned {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .status-display.completed {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-display.skipped {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    [data-theme="dark"] .status-display.planned {
+        background: #1e3a8a;
+        color: #bfdbfe;
+    }
+
+    [data-theme="dark"] .status-display.completed {
+        background: #14532d;
+        color: #bbf7d0;
+    }
+
+    [data-theme="dark"] .status-display.skipped {
+        background: #374151;
+        color: #d1d5db;
+    }
+
+    /* Empty state */
+    .empty-today {
+        text-align: center;
+        padding: 3rem;
+        background: var(--card-background-color);
+        border-radius: 16px;
+        border: 2px dashed var(--muted-border-color);
+    }
+
+    .empty-today h2 {
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-today p {
+        color: var(--muted-color);
+        margin-bottom: 1.5rem;
+    }
+
+    /* Upcoming section */
+    .upcoming-section {
+        margin-top: 2rem;
+    }
+
+    .upcoming-section h3 {
+        margin-bottom: 1rem;
+        color: var(--muted-color);
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .upcoming-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .upcoming-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--card-background-color);
+        border-radius: 8px;
+        border: 1px solid var(--muted-border-color);
+    }
+
+    .upcoming-date {
+        min-width: 60px;
+        text-align: center;
+    }
+
+    .upcoming-date .day {
+        font-weight: bold;
+        font-size: 1.25rem;
+    }
+
+    .upcoming-date .weekday {
+        font-size: 0.75rem;
+        color: var(--muted-color);
+    }
+
+    .upcoming-meals {
+        flex: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .upcoming-meal {
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+
+    .upcoming-meal.fresh {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .upcoming-meal.leftover {
+        background: #fef9c3;
+        color: #854d0e;
+    }
+
+    .upcoming-meal.light {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .upcoming-meal.soup {
+        background: #ede9fe;
+        color: #6d28d9;
+    }
+
+    [data-theme="dark"] .upcoming-meal.fresh {
+        background: #14532d;
+        color: #bbf7d0;
+    }
+
+    [data-theme="dark"] .upcoming-meal.leftover {
+        background: #713f12;
+        color: #fef08a;
+    }
+
+    [data-theme="dark"] .upcoming-meal.light {
+        background: #1e3a8a;
+        color: #bfdbfe;
+    }
+
+    [data-theme="dark"] .upcoming-meal.soup {
+        background: #4c1d95;
+        color: #ddd6fe;
+    }
+
+    /* Quick links */
+    .quick-links {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1.5rem;
+    }
+
+    .quick-links a {
+        padding: 0.5rem 1rem;
+        background: var(--muted-border-color);
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--color);
+        font-size: 0.875rem;
+    }
+
+    .quick-links a:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    /* Leftover day indicator */
+    .leftover-badge {
+        display: inline-block;
+        padding: 0.125rem 0.5rem;
+        background: #fef9c3;
+        color: #854d0e;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        margin-left: 0.5rem;
+    }
+
+    [data-theme="dark"] .leftover-badge {
+        background: #713f12;
+        color: #fef08a;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .today-hero h1 {
+            font-size: 1.5rem;
+        }
+
+        .meals-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .meal-hero-card h2 {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="today-hero">
+    <h1>What's for {{ meal_period }}?</h1>
+    <div class="date">{{ today.strftime('%A, %B %d, %Y') }}</div>
+    <div class="greeting">{{ greeting }}</div>
+</div>
+
+{% if not has_plan %}
+<div class="empty-today">
+    <h2>No Plan for Today</h2>
+    <p>You don't have any meals planned for today yet.</p>
+    <div class="quick-links" style="justify-content: center;">
+        <a href="/month/setup">Create Month Plan</a>
+        <a href="/week">View Week</a>
+    </div>
+</div>
+{% else %}
+
+<div class="meals-grid">
+    {% if dinner %}
+    <div class="meal-hero-card dinner">
+        <span class="meal-time-badge dinner">Dinner</span>
+        <h2>
+            {{ dinner.meal_name or 'Light Meal' }}
+            {% if dinner.leftover_day and dinner.leftover_day > 1 %}
+            <span class="leftover-badge">Day {{ dinner.leftover_day }}</span>
+            {% endif %}
+        </h2>
+        <div class="meal-meta">
+            {% if dinner.meal_type %}{{ dinner.meal_type }}{% endif %}
+        </div>
+
+        <div class="source-indicator">
+            <div class="source-icon {{ dinner.source }}">
+                {% if dinner.source == 'fresh' %}
+                &#127859;
+                {% elif dinner.source == 'leftover' %}
+                &#128230;
+                {% else %}
+                &#127860;
+                {% endif %}
+            </div>
+            <div class="source-text">
+                {% if dinner.source == 'fresh' %}
+                <h4>Cook Fresh Tonight</h4>
+                <p>Time to make something delicious!</p>
+                {% elif dinner.source == 'leftover' %}
+                <h4>Reheat Leftovers</h4>
+                <p>Already cooked - just warm it up!</p>
+                {% else %}
+                <h4>Light Meal</h4>
+                <p>Keep it simple tonight</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="meal-actions">
+            <button type="button"
+                    class="{% if dinner.status == 'completed' %}secondary{% endif %}"
+                    hx-post="/api/weeks/slots/{{ dinner.id }}/status?status=completed"
+                    hx-swap="none"
+                    hx-on::after-request="location.reload()">
+                {% if dinner.status == 'completed' %}Done!{% else %}Mark Done{% endif %}
+            </button>
+            {% if dinner.status != 'skipped' %}
+            <button type="button" class="secondary outline"
+                    hx-post="/api/weeks/slots/{{ dinner.id }}/status?status=skipped"
+                    hx-swap="none"
+                    hx-on::after-request="location.reload()">
+                Skip
+            </button>
+            {% endif %}
+        </div>
+
+        {% if dinner.status != 'planned' %}
+        <div class="status-display {{ dinner.status }}">
+            {% if dinner.status == 'completed' %}
+            Completed!
+            {% elif dinner.status == 'skipped' %}
+            Skipped
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if lunch %}
+    <div class="meal-hero-card lunch">
+        <span class="meal-time-badge lunch">Lunch</span>
+        <h2>
+            {{ lunch.meal_name or 'Light Meal' }}
+            {% if lunch.leftover_day and lunch.leftover_day > 1 %}
+            <span class="leftover-badge">Day {{ lunch.leftover_day }}</span>
+            {% endif %}
+        </h2>
+        <div class="meal-meta">
+            {% if lunch.meal_type %}{{ lunch.meal_type }}{% endif %}
+        </div>
+
+        <div class="source-indicator">
+            <div class="source-icon {{ lunch.source }}">
+                {% if lunch.source == 'fresh' %}
+                &#127859;
+                {% elif lunch.source == 'leftover' %}
+                &#128230;
+                {% else %}
+                &#127860;
+                {% endif %}
+            </div>
+            <div class="source-text">
+                {% if lunch.source == 'fresh' %}
+                <h4>Cook Fresh</h4>
+                <p>Make something fresh for lunch</p>
+                {% elif lunch.source == 'leftover' %}
+                <h4>Leftovers</h4>
+                <p>Use up what's in the fridge</p>
+                {% else %}
+                <h4>Light Meal</h4>
+                <p>Something simple</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="meal-actions">
+            <button type="button"
+                    class="{% if lunch.status == 'completed' %}secondary{% endif %}"
+                    hx-post="/api/weeks/slots/{{ lunch.id }}/status?status=completed"
+                    hx-swap="none"
+                    hx-on::after-request="location.reload()">
+                {% if lunch.status == 'completed' %}Done!{% else %}Mark Done{% endif %}
+            </button>
+        </div>
+
+        {% if lunch.status != 'planned' %}
+        <div class="status-display {{ lunch.status }}">
+            {% if lunch.status == 'completed' %}Completed!{% elif lunch.status == 'skipped' %}Skipped{% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if soup %}
+    <div class="meal-hero-card soup">
+        <span class="meal-time-badge soup">Soup</span>
+        <h2>
+            {{ soup.meal_name or 'Soup' }}
+            {% if soup.leftover_day and soup.leftover_day > 1 %}
+            <span class="leftover-badge">Day {{ soup.leftover_day }}</span>
+            {% endif %}
+        </h2>
+        <div class="meal-meta">Side dish / starter</div>
+
+        <div class="source-indicator">
+            <div class="source-icon {{ soup.source }}">
+                {% if soup.source == 'fresh' %}
+                &#127859;
+                {% else %}
+                &#128230;
+                {% endif %}
+            </div>
+            <div class="source-text">
+                {% if soup.source == 'fresh' %}
+                <h4>Make Soup Today</h4>
+                <p>Fresh batch of soup</p>
+                {% else %}
+                <h4>Soup from Yesterday</h4>
+                <p>Just heat it up</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="meal-actions">
+            <button type="button"
+                    class="{% if soup.status == 'completed' %}secondary{% endif %}"
+                    hx-post="/api/weeks/slots/{{ soup.id }}/status?status=completed"
+                    hx-swap="none"
+                    hx-on::after-request="location.reload()">
+                {% if soup.status == 'completed' %}Done!{% else %}Mark Done{% endif %}
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if not dinner and not lunch and not soup %}
+<div class="empty-today">
+    <h2>No Meals Planned</h2>
+    <p>This day doesn't have any meal slots yet. Try materializing the week.</p>
+    <div class="quick-links" style="justify-content: center;">
+        <a href="/week/{{ year }}/{{ week }}">View Week</a>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% if upcoming %}
+<div class="upcoming-section">
+    <h3>Coming Up</h3>
+    <div class="upcoming-list">
+        {% for day in upcoming %}
+        <div class="upcoming-item">
+            <div class="upcoming-date">
+                <div class="day">{{ day.date.day }}</div>
+                <div class="weekday">{{ day.day_name[:3] }}</div>
+            </div>
+            <div class="upcoming-meals">
+                {% for meal in day.meals %}
+                <span class="upcoming-meal {{ meal.source }}{% if meal.is_soup %} soup{% endif %}">
+                    {{ meal.name or 'Light' }}
+                    {% if meal.leftover_day and meal.leftover_day > 1 %}(D{{ meal.leftover_day }}){% endif %}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="quick-links">
+    <a href="/week/{{ year }}/{{ week }}">Full Week View</a>
+    <a href="/month/{{ year }}/{{ month }}">Month Overview</a>
+    <a href="/meals">Browse Meals</a>
+</div>
+{% endblock %}

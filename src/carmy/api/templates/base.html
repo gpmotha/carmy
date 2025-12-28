@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="{{ lang|default('en') }}" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Carmy{% endblock %} - Meal Planner</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍳</text></svg>">
+
+    <!-- Pico CSS for simple, semantic styling -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+    <!-- HTMX for interactivity -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <style>
+        :root {
+            --primary: #e67e22;
+            --primary-hover: #d35400;
+        }
+
+        [data-theme="dark"] {
+            --primary: #f39c12;
+            --primary-hover: #e67e22;
+        }
+
+        /* Navigation */
+        nav.container-fluid {
+            background: var(--primary);
+            padding: 0.5rem 1rem;
+        }
+
+        nav a, nav strong {
+            color: white !important;
+        }
+
+        nav ul li a:hover {
+            text-decoration: underline;
+        }
+
+        /* Settings buttons in nav */
+        .nav-settings {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .nav-settings button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        .nav-settings button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .nav-settings button.active {
+            background: rgba(255,255,255,0.4);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-background-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Meal cards */
+        .meal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .meal-card {
+            border: 1px solid var(--muted-border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .meal-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .meal-card h4 {
+            margin: 0 0 0.25rem 0;
+        }
+
+        .meal-card .subtitle {
+            color: var(--muted-color);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .meal-card .tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 0.75rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 999px;
+            background: var(--muted-border-color);
+        }
+
+        .tag.meat { background: #fee2e2; color: #b91c1c; }
+        .tag.vegetarian { background: #dcfce7; color: #166534; }
+        .tag.soup { background: #dbeafe; color: #1e40af; }
+        .tag.main { background: #fef3c7; color: #92400e; }
+
+        [data-theme="dark"] .tag.meat { background: #7f1d1d; color: #fecaca; }
+        [data-theme="dark"] .tag.vegetarian { background: #14532d; color: #bbf7d0; }
+        [data-theme="dark"] .tag.soup { background: #1e3a8a; color: #bfdbfe; }
+        [data-theme="dark"] .tag.main { background: #78350f; color: #fde68a; }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            background: var(--card-background-color);
+            border-radius: 8px;
+            border: 1px solid var(--muted-border-color);
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-card .label {
+            color: var(--muted-color);
+            font-size: 0.875rem;
+        }
+
+        /* Filters - responsive */
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: end;
+            margin-bottom: 1.5rem;
+        }
+
+        .filters label {
+            margin-bottom: 0;
+        }
+
+        .filters input, .filters select {
+            margin-bottom: 0;
+        }
+
+        /* Plan display */
+        .plan-section {
+            margin-bottom: 2rem;
+        }
+
+        .plan-section h3 {
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert.success { background: #dcfce7; color: #166534; }
+        .alert.warning { background: #fef3c7; color: #92400e; }
+        .alert.error { background: #fee2e2; color: #b91c1c; }
+        .alert.info { background: #dbeafe; color: #1e40af; }
+
+        [data-theme="dark"] .alert.success { background: #14532d; color: #bbf7d0; }
+        [data-theme="dark"] .alert.warning { background: #78350f; color: #fde68a; }
+        [data-theme="dark"] .alert.error { background: #7f1d1d; color: #fecaca; }
+        [data-theme="dark"] .alert.info { background: #1e3a8a; color: #bfdbfe; }
+
+        /* Footer */
+        footer {
+            margin-top: 3rem;
+            padding: 1rem;
+            text-align: center;
+            color: var(--muted-color);
+            font-size: 0.875rem;
+        }
+
+        /* Loading indicator */
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            display: inline-block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid var(--muted-border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            max-width: 400px;
+        }
+
+        .toast.success { background: #dcfce7; color: #166534; }
+        .toast.error { background: #fee2e2; color: #b91c1c; }
+        .toast.info { background: #dbeafe; color: #1e40af; }
+
+        [data-theme="dark"] .toast.success { background: #14532d; color: #bbf7d0; }
+        [data-theme="dark"] .toast.error { background: #7f1d1d; color: #fecaca; }
+        [data-theme="dark"] .toast.info { background: #1e3a8a; color: #bfdbfe; }
+
+        .toast .close-btn {
+            margin-left: auto;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .toast .close-btn:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .toast.hiding {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+
+        /* Live search highlight */
+        .search-input {
+            position: relative;
+        }
+
+        .search-loading {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* Inline edit form */
+        .inline-edit {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .inline-edit input,
+        .inline-edit select {
+            margin: 0;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .inline-edit button {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        .editable {
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .editable:hover {
+            background: var(--muted-border-color);
+        }
+
+        /* Button group */
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        /* Fade transitions */
+        .htmx-swapping {
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+
+        .htmx-added {
+            opacity: 0;
+        }
+
+        .htmx-added.htmx-settling {
+            opacity: 1;
+            transition: opacity 0.3s ease-in;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .meal-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stat-card .value {
+                font-size: 1.5rem;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filters > div {
+                width: 100%;
+            }
+
+            nav.container-fluid {
+                flex-wrap: wrap;
+            }
+
+            nav ul {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .nav-settings {
+                width: 100%;
+                justify-content: center;
+                margin-top: 0.5rem;
+            }
+
+            .toast-container {
+                left: 1rem;
+                right: 1rem;
+            }
+
+            .toast {
+                max-width: none;
+            }
+
+            /* Stack grid layouts on mobile */
+            .grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .meal-card {
+                padding: 0.75rem;
+            }
+        }
+
+        /* Language toggle styles */
+        .lang-toggle {
+            display: inline-flex;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .lang-toggle button {
+            border-radius: 0;
+        }
+
+        /* Hide Hungarian names when English is selected */
+        [data-lang="en"] .hu-name {
+            display: none;
+        }
+
+        [data-lang="hu"] .en-name {
+            display: none;
+        }
+
+        /* Show both by default */
+        .meal-name-primary {
+            display: block;
+        }
+
+        .meal-name-secondary {
+            display: block;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body hx-boost="true" data-lang="en">
+    <!-- Toast container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <nav class="container-fluid">
+        <ul>
+            <li><strong><a href="/">Carmy</a></strong></li>
+        </ul>
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/today">Today</a></li>
+            <li><a href="/month/setup">Month Plan</a></li>
+            <li><a href="/week">Week View</a></li>
+            <li><a href="/board">Board</a></li>
+            <li><a href="/meals">Meals</a></li>
+            <li><a href="/plans">Plans</a></li>
+            <li><a href="/analytics">Analytics</a></li>
+            <li>
+                <div class="nav-settings">
+                    <button onclick="toggleTheme()" id="theme-toggle" title="Toggle dark mode">
+                        <span id="theme-icon">Dark</span>
+                    </button>
+                    <div class="lang-toggle">
+                        <button onclick="setLang('en')" id="lang-en" class="active" title="English">EN</button>
+                        <button onclick="setLang('hu')" id="lang-hu" title="Hungarian">HU</button>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="container">
+        <p>Carmy v{{ version }} - A smart weekly meal planner for families</p>
+    </footer>
+
+    <script>
+        // Theme management
+        function getTheme() {
+            return localStorage.getItem('theme') || 'light';
+        }
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            updateThemeButton(theme);
+        }
+
+        function toggleTheme() {
+            const current = getTheme();
+            setTheme(current === 'light' ? 'dark' : 'light');
+        }
+
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.textContent = theme === 'light' ? 'Dark' : 'Light';
+            }
+        }
+
+        // Language management
+        function getLang() {
+            return localStorage.getItem('lang') || 'en';
+        }
+
+        function setLang(lang) {
+            document.body.setAttribute('data-lang', lang);
+            localStorage.setItem('lang', lang);
+            updateLangButtons(lang);
+            // Swap displayed meal names
+            swapMealNames(lang);
+        }
+
+        function updateLangButtons(lang) {
+            document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+            document.getElementById('lang-hu').classList.toggle('active', lang === 'hu');
+        }
+
+        function swapMealNames(lang) {
+            // Swap primary and secondary names based on language
+            document.querySelectorAll('.meal-card').forEach(card => {
+                const primary = card.querySelector('.meal-name-primary');
+                const secondary = card.querySelector('.meal-name-secondary');
+                if (primary && secondary && primary.dataset.en && primary.dataset.hu) {
+                    if (lang === 'hu') {
+                        primary.textContent = primary.dataset.hu;
+                        secondary.textContent = primary.dataset.en;
+                    } else {
+                        primary.textContent = primary.dataset.en;
+                        secondary.textContent = primary.dataset.hu;
+                    }
+                }
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply saved theme
+            setTheme(getTheme());
+            // Apply saved language
+            const lang = getLang();
+            document.body.setAttribute('data-lang', lang);
+            updateLangButtons(lang);
+        });
+
+        // Re-apply after HTMX swaps
+        document.body.addEventListener('htmx:afterSettle', function() {
+            const lang = getLang();
+            swapMealNames(lang);
+        });
+
+        // Toast notification system
+        function showToast(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span>${message}</span>
+                <span class="close-btn" onclick="this.parentElement.remove()">x</span>
+            `;
+            container.appendChild(toast);
+
+            if (duration > 0) {
+                setTimeout(() => {
+                    toast.classList.add('hiding');
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            }
+        }
+
+        // Listen for HTMX events to show toasts
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            const trigger = evt.detail.xhr.getResponseHeader('HX-Trigger');
+            if (trigger) {
+                try {
+                    const data = JSON.parse(trigger);
+                    if (data.showToast) {
+                        showToast(data.showToast.message, data.showToast.type);
+                    }
+                } catch (e) {}
+            }
+        });
+
+        // Handle HTMX errors
+        document.body.addEventListener('htmx:responseError', function(evt) {
+            showToast('An error occurred. Please try again.', 'error');
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,25 @@
+<article class="meal-card" id="plan-meal-{{ pm.id }}">
+    <h4><a href="/meals/{{ pm.meal.id }}">{{ pm.meal.name }}</a></h4>
+    <div class="subtitle">{{ pm.meal.nev }}</div>
+    <div class="tags">
+        {% if pm.meal.cuisine %}
+        <span class="tag">{{ pm.meal.cuisine }}</span>
+        {% endif %}
+        {% if pm.meal.has_meat %}
+        <span class="tag meat">Meat</span>
+        {% endif %}
+        {% if pm.is_leftover %}
+        <span class="tag">Leftover</span>
+        {% endif %}
+    </div>
+    <div class="btn-group" style="margin-top: 0.5rem;">
+        <button class="btn-sm outline"
+                hx-post="/htmx/plans/{{ plan_id }}/meals/{{ pm.id }}/regenerate"
+                hx-target="#plan-meal-{{ pm.id }}"
+                hx-swap="outerHTML"
+                hx-indicator="#spinner-{{ pm.id }}">
+            Swap
+            <span id="spinner-{{ pm.id }}" class="htmx-indicator"><span class="spinner"></span></span>
+        </button>
+    </div>
+</article>

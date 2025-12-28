@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Plans{% endblock %}
+
+{% block content %}
+<h1>Weekly Plans</h1>
+
+<div class="grid">
+    <div>
+        <p>Browse your meal planning history.</p>
+    </div>
+    <div style="text-align: right;">
+        <a href="/plans/generate" role="button">Generate New Plan</a>
+    </div>
+</div>
+
+<!-- Year Filter -->
+<form class="filters" method="get" action="/plans">
+    <div>
+        <label for="year">Year</label>
+        <select id="year" name="year" onchange="this.form.submit()">
+            <option value="">All Years</option>
+            {% for y in years %}
+            <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</form>
+
+<!-- Plans Table -->
+<table>
+    <thead>
+        <tr>
+            <th>Week</th>
+            <th>Year</th>
+            <th>Start Date</th>
+            <th>Meals</th>
+            <th>Soups</th>
+            <th>Main Courses</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for plan in plans %}
+        <tr>
+            <td><strong>W{{ plan.week_number }}</strong></td>
+            <td>{{ plan.year }}</td>
+            <td>{{ plan.start_date }}</td>
+            <td>{{ plan.meal_count }}</td>
+            <td>{{ plan.soup_count }}</td>
+            <td>{{ plan.main_count }}</td>
+            <td>
+                <a href="/plans/{{ plan.year }}/{{ plan.week_number }}">View</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7"><em>No plans found.</em></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if total_plans > 20 %}
+<p><em>Showing {{ plans|length }} of {{ total_plans }} plans.</em></p>
+{% endif %}
+{% endblock %}

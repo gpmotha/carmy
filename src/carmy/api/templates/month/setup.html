@@ -1,0 +1,919 @@
+{% extends "base.html" %}
+
+{% block title %}Plan {{ month_name }} {{ year }}{% endblock %}
+
+{% block head %}
+<style>
+    .wizard-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .wizard-header h1 {
+        margin-bottom: 0.5rem;
+    }
+
+    .wizard-header .subtitle {
+        color: var(--muted-color);
+    }
+
+    /* Step navigation */
+    .wizard-steps {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .wizard-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        opacity: 0.5;
+        transition: opacity 0.3s;
+    }
+
+    .wizard-step.active,
+    .wizard-step.completed {
+        opacity: 1;
+    }
+
+    .step-number {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: var(--muted-border-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+
+    .wizard-step.active .step-number {
+        background: var(--primary);
+        color: white;
+    }
+
+    .wizard-step.completed .step-number {
+        background: #10b981;
+        color: white;
+    }
+
+    .step-label {
+        font-size: 0.75rem;
+        color: var(--muted-color);
+    }
+
+    .step-connector {
+        width: 3rem;
+        height: 2px;
+        background: var(--muted-border-color);
+        align-self: center;
+        margin-top: -1.25rem;
+    }
+
+    /* Wizard sections */
+    .wizard-section {
+        display: none;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .wizard-section.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Theme selection */
+    .theme-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .theme-card {
+        border: 2px solid var(--muted-border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+
+    .theme-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+    .theme-card.selected {
+        border-color: var(--primary);
+        background: rgba(230, 126, 34, 0.1);
+    }
+
+    .theme-card input[type="radio"] {
+        display: none;
+    }
+
+    .theme-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .theme-name {
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+    }
+
+    .theme-desc {
+        font-size: 0.75rem;
+        color: var(--muted-color);
+    }
+
+    /* Sliders section */
+    .slider-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .slider-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .slider-label {
+        font-weight: 500;
+    }
+
+    .slider-value {
+        font-size: 0.875rem;
+        color: var(--muted-color);
+    }
+
+    .slider-track {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .slider-track input[type="range"] {
+        flex: 1;
+        height: 8px;
+        -webkit-appearance: none;
+        background: var(--muted-border-color);
+        border-radius: 4px;
+        outline: none;
+    }
+
+    .slider-track input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--primary);
+        cursor: pointer;
+    }
+
+    .slider-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--muted-color);
+        margin-top: 0.25rem;
+    }
+
+    /* Toggle options */
+    .toggle-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .toggle-option {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--muted-border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .toggle-option:hover {
+        border-color: var(--primary);
+    }
+
+    .toggle-option.active {
+        border-color: var(--primary);
+        background: rgba(230, 126, 34, 0.1);
+    }
+
+    .toggle-option input[type="checkbox"] {
+        margin: 0;
+    }
+
+    /* Day selection */
+    .day-select-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .day-select-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .day-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .day-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--muted-border-color);
+        border-radius: 4px;
+        background: var(--card-background-color);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .day-btn:hover {
+        border-color: var(--primary);
+    }
+
+    .day-btn.selected {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .day-btn input[type="checkbox"] {
+        display: none;
+    }
+
+    /* Special dates */
+    .special-dates-list {
+        margin-bottom: 1rem;
+    }
+
+    .special-date-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        background: var(--background-color);
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+    }
+
+    .special-date-item .date-info {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .add-date-form {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: end;
+    }
+
+    .add-date-form > div {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .add-date-form input,
+    .add-date-form select {
+        margin-bottom: 0;
+    }
+
+    /* Summary section */
+    .settings-summary {
+        background: var(--card-background-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .summary-item {
+        padding: 0.75rem;
+        background: var(--background-color);
+        border-radius: 4px;
+    }
+
+    .summary-label {
+        font-size: 0.75rem;
+        color: var(--muted-color);
+        text-transform: uppercase;
+    }
+
+    .summary-value {
+        font-weight: bold;
+        margin-top: 0.25rem;
+    }
+
+    /* Wizard navigation */
+    .wizard-nav {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--muted-border-color);
+    }
+
+    .wizard-nav button {
+        min-width: 120px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .wizard-steps {
+            flex-wrap: wrap;
+        }
+
+        .step-connector {
+            display: none;
+        }
+
+        .theme-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .add-date-form {
+            flex-direction: column;
+        }
+
+        .add-date-form > div {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-header">
+    <h1>Plan {{ month_name }} {{ year }}</h1>
+    <p class="subtitle">Set up your month's cooking strategy</p>
+</div>
+
+<!-- Step indicators -->
+<div class="wizard-steps">
+    <div class="wizard-step active" data-step="1">
+        <span class="step-number">1</span>
+        <span class="step-label">Theme</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="wizard-step" data-step="2">
+        <span class="step-number">2</span>
+        <span class="step-label">Preferences</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="wizard-step" data-step="3">
+        <span class="step-number">3</span>
+        <span class="step-label">Schedule</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="wizard-step" data-step="4">
+        <span class="step-number">4</span>
+        <span class="step-label">Special Dates</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="wizard-step" data-step="5">
+        <span class="step-number">5</span>
+        <span class="step-label">Review</span>
+    </div>
+</div>
+
+<form id="month-setup-form" method="POST">
+    <!-- Step 1: Theme Selection -->
+    <div class="wizard-section active" data-step="1">
+        <h2>Choose a Theme</h2>
+        <p>A theme sets the overall mood for your month's cooking. You can customize everything after.</p>
+
+        <div class="theme-grid">
+            <label class="theme-card" data-theme="none">
+                <input type="radio" name="theme" value="" {% if not existing_plan or not existing_plan.theme %}checked{% endif %}>
+                <div class="theme-icon">-</div>
+                <div class="theme-name">No Theme</div>
+                <div class="theme-desc">Start with default settings</div>
+            </label>
+            {% for theme in themes %}
+            <label class="theme-card" data-theme="{{ theme.name }}">
+                <input type="radio" name="theme" value="{{ theme.name }}" {% if existing_plan and existing_plan.theme == theme.name %}checked{% endif %}>
+                <div class="theme-icon">{{ theme.icon }}</div>
+                <div class="theme-name">{{ theme.name|title }}</div>
+                <div class="theme-desc">{{ theme.description }}</div>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Step 2: Dietary Preferences -->
+    <div class="wizard-section" data-step="2">
+        <h2>Dietary Preferences</h2>
+        <p>Adjust these sliders to match your family's preferences.</p>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span class="slider-label">Meat Level</span>
+                <span class="slider-value" id="meat-level-value">{{ settings.meat_level * 100 | int }}%</span>
+            </div>
+            <div class="slider-track">
+                <input type="range" name="meat_level" min="0" max="100" value="{{ settings.meat_level * 100 | int }}"
+                       oninput="document.getElementById('meat-level-value').textContent = this.value + '%'">
+            </div>
+            <div class="slider-labels">
+                <span>Mostly veggie</span>
+                <span>Meat-heavy</span>
+            </div>
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span class="slider-label">Fish Level</span>
+                <span class="slider-value" id="fish-level-value">{{ settings.fish_level * 100 | int }}%</span>
+            </div>
+            <div class="slider-track">
+                <input type="range" name="fish_level" min="0" max="100" value="{{ settings.fish_level * 100 | int }}"
+                       oninput="document.getElementById('fish-level-value').textContent = this.value + '%'">
+            </div>
+            <div class="slider-labels">
+                <span>No fish</span>
+                <span>Fish-focused</span>
+            </div>
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span class="slider-label">Veggie Level</span>
+                <span class="slider-value" id="veggie-level-value">{{ settings.veggie_level * 100 | int }}%</span>
+            </div>
+            <div class="slider-track">
+                <input type="range" name="veggie_level" min="0" max="100" value="{{ settings.veggie_level * 100 | int }}"
+                       oninput="document.getElementById('veggie-level-value').textContent = this.value + '%'">
+            </div>
+            <div class="slider-labels">
+                <span>Minimal veggies</span>
+                <span>Veggie-rich</span>
+            </div>
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span class="slider-label">New Recipes</span>
+                <span class="slider-value" id="new-recipes-value">{{ settings.new_recipes * 100 | int }}%</span>
+            </div>
+            <div class="slider-track">
+                <input type="range" name="new_recipes" min="0" max="100" value="{{ settings.new_recipes * 100 | int }}"
+                       oninput="document.getElementById('new-recipes-value').textContent = this.value + '%'">
+            </div>
+            <div class="slider-labels">
+                <span>Family favorites</span>
+                <span>Try new things</span>
+            </div>
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span class="slider-label">Cuisine Balance</span>
+                <span class="slider-value" id="cuisine-balance-value">{{ settings.cuisine_balance * 100 | int }}%</span>
+            </div>
+            <div class="slider-track">
+                <input type="range" name="cuisine_balance" min="0" max="100" value="{{ settings.cuisine_balance * 100 | int }}"
+                       oninput="document.getElementById('cuisine-balance-value').textContent = this.value + '%'">
+            </div>
+            <div class="slider-labels">
+                <span>Traditional Hungarian</span>
+                <span>International</span>
+            </div>
+        </div>
+
+        <h3>Special Modes</h3>
+        <div class="toggle-group">
+            <label class="toggle-option {% if settings.lent_mode %}active{% endif %}">
+                <input type="checkbox" name="lent_mode" {% if settings.lent_mode %}checked{% endif %}
+                       onchange="this.parentElement.classList.toggle('active', this.checked)">
+                <span>Lent Mode (meatless Fridays)</span>
+            </label>
+            <label class="toggle-option {% if settings.batch_cooking %}active{% endif %}">
+                <input type="checkbox" name="batch_cooking" {% if settings.batch_cooking %}checked{% endif %}
+                       onchange="this.parentElement.classList.toggle('active', this.checked)">
+                <span>Batch Cooking Focus</span>
+            </label>
+            <label class="toggle-option {% if settings.sales_aware %}active{% endif %}">
+                <input type="checkbox" name="sales_aware" {% if settings.sales_aware %}checked{% endif %}
+                       onchange="this.parentElement.classList.toggle('active', this.checked)">
+                <span>Consider Sales</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Step 3: Weekly Schedule -->
+    <div class="wizard-section" data-step="3">
+        <h2>Weekly Schedule</h2>
+        <p>Set your typical cooking rhythm for the week.</p>
+
+        <div class="day-select-group">
+            <div class="day-select-label">Big Cook Days (main cooking sessions)</div>
+            <div class="day-buttons" id="big-cook-days">
+                {% for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
+                <label class="day-btn {% if loop.index0 in settings.big_cook_days %}selected{% endif %}">
+                    <input type="checkbox" name="big_cook_days" value="{{ loop.index0 }}"
+                           {% if loop.index0 in settings.big_cook_days %}checked{% endif %}
+                           onchange="this.parentElement.classList.toggle('selected', this.checked)">
+                    {{ day }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="day-select-group">
+            <div class="day-select-label">Mid-Week Cook Days (lighter cooking)</div>
+            <div class="day-buttons" id="mid-week-cook-days">
+                {% for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
+                <label class="day-btn {% if loop.index0 in settings.mid_week_cook_days %}selected{% endif %}">
+                    <input type="checkbox" name="mid_week_cook_days" value="{{ loop.index0 }}"
+                           {% if loop.index0 in settings.mid_week_cook_days %}checked{% endif %}
+                           onchange="this.parentElement.classList.toggle('selected', this.checked)">
+                    {{ day }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="day-select-group">
+            <div class="day-select-label">Fun Food Days (pizza, takeout, special treats)</div>
+            <div class="day-buttons" id="fun-food-days">
+                {% for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
+                <label class="day-btn {% if loop.index0 in settings.fun_food_days %}selected{% endif %}">
+                    <input type="checkbox" name="fun_food_days" value="{{ loop.index0 }}"
+                           {% if loop.index0 in settings.fun_food_days %}checked{% endif %}
+                           onchange="this.parentElement.classList.toggle('selected', this.checked)">
+                    {{ day }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <h3>Weekly Quotas</h3>
+        <div class="grid" style="gap: 1rem;">
+            <div>
+                <label for="soups_per_week">Soups per week</label>
+                <input type="number" name="soups_per_week" id="soups_per_week"
+                       min="0" max="7" value="{{ settings.soups_per_week }}">
+            </div>
+            <div>
+                <label for="main_courses_per_week">Main courses per week</label>
+                <input type="number" name="main_courses_per_week" id="main_courses_per_week"
+                       min="0" max="7" value="{{ settings.main_courses_per_week }}">
+            </div>
+            <div>
+                <label for="max_meat_per_week">Max meat dishes per week</label>
+                <input type="number" name="max_meat_per_week" id="max_meat_per_week"
+                       min="0" max="7" value="{{ settings.max_meat_per_week }}">
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 4: Special Dates -->
+    <div class="wizard-section" data-step="4">
+        <h2>Special Dates</h2>
+        <p>Add birthdays, holidays, or events that affect your cooking plans.</p>
+
+        <div class="special-dates-list" id="special-dates-list">
+            {% for sd in special_dates %}
+            <div class="special-date-item" data-id="{{ sd.id }}">
+                <div class="date-info">
+                    <span>{{ sd.date.strftime('%b %d') }}</span>
+                    <strong>{{ sd.name }}</strong>
+                    <span class="tag">{{ sd.event_type }}</span>
+                </div>
+                <button type="button" class="btn-sm outline" onclick="removeSpecialDate({{ sd.id }})">Remove</button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="add-date-form">
+            <div>
+                <label for="new-date">Date</label>
+                <input type="date" id="new-date" min="{{ year }}-{{ '%02d' % month }}-01"
+                       max="{{ year }}-{{ '%02d' % month }}-{{ days_in_month }}">
+            </div>
+            <div>
+                <label for="new-name">Name</label>
+                <input type="text" id="new-name" placeholder="e.g., Mom's birthday">
+            </div>
+            <div>
+                <label for="new-type">Type</label>
+                <select id="new-type">
+                    <option value="birthday">Birthday</option>
+                    <option value="holiday">Holiday</option>
+                    <option value="guests">Guests coming</option>
+                    <option value="eating_out">Eating out</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div>
+                <label>&nbsp;</label>
+                <button type="button" onclick="addSpecialDate()">Add Date</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 5: Review & Generate -->
+    <div class="wizard-section" data-step="5">
+        <h2>Review & Generate</h2>
+        <p>Review your settings before generating the month plan.</p>
+
+        <div class="settings-summary">
+            <h3>Settings Summary</h3>
+            <div class="summary-grid" id="settings-summary">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+
+        {% if existing_plan and existing_plan.week_skeletons|length > 0 %}
+        <div class="alert warning">
+            This month already has generated weeks. Regenerating will replace them.
+        </div>
+        {% endif %}
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <button type="submit" class="primary" style="padding: 1rem 3rem; font-size: 1.1rem;">
+                Generate Month Plan
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden fields -->
+    <input type="hidden" name="year" value="{{ year }}">
+    <input type="hidden" name="month" value="{{ month }}">
+    <input type="hidden" name="special_dates_json" id="special-dates-json" value="[]">
+
+    <!-- Navigation -->
+    <div class="wizard-nav">
+        <button type="button" id="prev-btn" onclick="prevStep()" disabled>Back</button>
+        <button type="button" id="next-btn" onclick="nextStep()">Next</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentStep = 1;
+const totalSteps = 5;
+let specialDates = {{ special_dates | tojson if special_dates else '[]' }};
+
+function updateStepDisplay() {
+    // Update step indicators
+    document.querySelectorAll('.wizard-step').forEach(step => {
+        const stepNum = parseInt(step.dataset.step);
+        step.classList.remove('active', 'completed');
+        if (stepNum === currentStep) {
+            step.classList.add('active');
+        } else if (stepNum < currentStep) {
+            step.classList.add('completed');
+        }
+    });
+
+    // Update sections
+    document.querySelectorAll('.wizard-section').forEach(section => {
+        const stepNum = parseInt(section.dataset.step);
+        section.classList.toggle('active', stepNum === currentStep);
+    });
+
+    // Update buttons
+    document.getElementById('prev-btn').disabled = currentStep === 1;
+    const nextBtn = document.getElementById('next-btn');
+    if (currentStep === totalSteps) {
+        nextBtn.style.display = 'none';
+    } else {
+        nextBtn.style.display = '';
+        nextBtn.textContent = 'Next';
+    }
+
+    // If on review step, update summary
+    if (currentStep === 5) {
+        updateSummary();
+    }
+}
+
+function nextStep() {
+    if (currentStep < totalSteps) {
+        currentStep++;
+        updateStepDisplay();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function prevStep() {
+    if (currentStep > 1) {
+        currentStep--;
+        updateStepDisplay();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+// Theme card selection
+document.querySelectorAll('.theme-card').forEach(card => {
+    card.addEventListener('click', function() {
+        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+        this.querySelector('input').checked = true;
+
+        // Apply theme effects to sliders
+        applyThemeEffects(this.dataset.theme);
+    });
+});
+
+function applyThemeEffects(themeName) {
+    // Theme effects from theme_settings.py
+    const themeEffects = {
+        'comfort': { meat: 20, fish: 0, veggie: 0, new_recipes: 0, cuisine: -20 },
+        'light': { meat: -20, fish: 10, veggie: 30, new_recipes: 0, cuisine: 0 },
+        'seafood': { meat: -20, fish: 40, veggie: 0, new_recipes: 0, cuisine: 0 },
+        'budget': { meat: -10, fish: 0, veggie: 0, new_recipes: -30, cuisine: 0 },
+        'guests': { meat: 10, fish: 0, veggie: 0, new_recipes: 20, cuisine: 20 },
+        'lent': { meat: -30, fish: 20, veggie: 20, new_recipes: 0, cuisine: -20 },
+        'pantry_clearing': { meat: 0, fish: 0, veggie: 0, new_recipes: -40, cuisine: 0 },
+        'batch_cooking': { meat: 10, fish: 0, veggie: 0, new_recipes: 0, cuisine: 0 }
+    };
+
+    if (themeName && themeEffects[themeName]) {
+        const effects = themeEffects[themeName];
+        // Apply effects (add to base 50%)
+        applySliderEffect('meat_level', 50 + effects.meat);
+        applySliderEffect('fish_level', 30 + effects.fish);
+        applySliderEffect('veggie_level', 50 + effects.veggie);
+        applySliderEffect('new_recipes', 30 + effects.new_recipes);
+        applySliderEffect('cuisine_balance', 50 + effects.cuisine);
+
+        // Handle special modes
+        if (themeName === 'lent') {
+            document.querySelector('input[name="lent_mode"]').checked = true;
+            document.querySelector('input[name="lent_mode"]').parentElement.classList.add('active');
+        }
+        if (themeName === 'comfort' || themeName === 'budget' || themeName === 'batch_cooking') {
+            document.querySelector('input[name="batch_cooking"]').checked = true;
+            document.querySelector('input[name="batch_cooking"]').parentElement.classList.add('active');
+        }
+    }
+}
+
+function applySliderEffect(name, value) {
+    const slider = document.querySelector(`input[name="${name}"]`);
+    if (slider) {
+        slider.value = Math.max(0, Math.min(100, value));
+        // Trigger the oninput handler
+        slider.dispatchEvent(new Event('input'));
+    }
+}
+
+// Special dates management
+function addSpecialDate() {
+    const dateInput = document.getElementById('new-date');
+    const nameInput = document.getElementById('new-name');
+    const typeInput = document.getElementById('new-type');
+
+    if (!dateInput.value || !nameInput.value) {
+        showToast('Please fill in date and name', 'error');
+        return;
+    }
+
+    const newDate = {
+        date: dateInput.value,
+        name: nameInput.value,
+        event_type: typeInput.value,
+        affects_cooking: true
+    };
+
+    specialDates.push(newDate);
+    renderSpecialDates();
+
+    // Clear inputs
+    dateInput.value = '';
+    nameInput.value = '';
+    typeInput.value = 'birthday';
+}
+
+function removeSpecialDate(index) {
+    specialDates.splice(index, 1);
+    renderSpecialDates();
+}
+
+function renderSpecialDates() {
+    const container = document.getElementById('special-dates-list');
+    container.innerHTML = specialDates.map((sd, index) => `
+        <div class="special-date-item">
+            <div class="date-info">
+                <span>${formatDate(sd.date)}</span>
+                <strong>${sd.name}</strong>
+                <span class="tag">${sd.event_type}</span>
+            </div>
+            <button type="button" class="btn-sm outline" onclick="removeSpecialDate(${index})">Remove</button>
+        </div>
+    `).join('');
+
+    // Update hidden field
+    document.getElementById('special-dates-json').value = JSON.stringify(specialDates);
+}
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Summary generation
+function updateSummary() {
+    const form = document.getElementById('month-setup-form');
+    const formData = new FormData(form);
+
+    const theme = formData.get('theme') || 'None';
+    const meatLevel = formData.get('meat_level');
+    const fishLevel = formData.get('fish_level');
+    const veggieLevel = formData.get('veggie_level');
+    const cuisineBalance = formData.get('cuisine_balance');
+    const lentMode = formData.get('lent_mode') ? 'Yes' : 'No';
+    const batchCooking = formData.get('batch_cooking') ? 'Yes' : 'No';
+
+    const bigCookDays = formData.getAll('big_cook_days').map(d => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d]).join(', ') || 'None';
+    const soups = formData.get('soups_per_week');
+    const mains = formData.get('main_courses_per_week');
+    const maxMeat = formData.get('max_meat_per_week');
+
+    document.getElementById('settings-summary').innerHTML = `
+        <div class="summary-item">
+            <div class="summary-label">Theme</div>
+            <div class="summary-value">${theme ? theme.charAt(0).toUpperCase() + theme.slice(1) : 'None'}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Meat Level</div>
+            <div class="summary-value">${meatLevel}%</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Fish Level</div>
+            <div class="summary-value">${fishLevel}%</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Cuisine Balance</div>
+            <div class="summary-value">${cuisineBalance < 30 ? 'Hungarian' : cuisineBalance > 70 ? 'International' : 'Mixed'}%</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Lent Mode</div>
+            <div class="summary-value">${lentMode}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Batch Cooking</div>
+            <div class="summary-value">${batchCooking}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Big Cook Days</div>
+            <div class="summary-value">${bigCookDays}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Soups/Week</div>
+            <div class="summary-value">${soups}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Mains/Week</div>
+            <div class="summary-value">${mains}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Max Meat/Week</div>
+            <div class="summary-value">${maxMeat}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Special Dates</div>
+            <div class="summary-value">${specialDates.length}</div>
+        </div>
+    `;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Mark initial theme selection
+    const checkedTheme = document.querySelector('.theme-card input:checked');
+    if (checkedTheme) {
+        checkedTheme.closest('.theme-card').classList.add('selected');
+    }
+
+    renderSpecialDates();
+    updateStepDisplay();
+});
+</script>
+{% endblock %}
