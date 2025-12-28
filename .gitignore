@@ -52,27 +52,7 @@ htmlcov/
 # ruff
 .ruff_cache/
 
-# Documentation (contains personal/family meal planning details)
+# Project-specific exclusions
 docs/
-
-# Data files (personal meal data)
 data/
-
-# Node modules (React frontend)
 node_modules/
-
-# Sensitive/personal files
-*.json.bak
-*.csv.bak
-carmy.db
-*.log
-
-# Credentials and secrets
-credentials.json
-secrets.json
-*.pem
-*.key
-
-# OS files
-.DS_Store
-Thumbs.db
